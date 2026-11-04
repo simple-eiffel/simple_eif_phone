@@ -34,6 +34,13 @@ feature {NONE} -- Test Runners
 			l_consumer: TEST_SCOOP_CONSUMER
 		do
 			create l_lib_tests
+			run_test (agent l_lib_tests.test_project_native_read, "test_project_native_read")
+			run_test (agent l_lib_tests.test_project_no_native_is_fine, "test_project_no_native_is_fine")
+			run_test (agent l_lib_tests.test_project_native_missing_source_named, "test_project_native_missing_source_named")
+			run_test (agent l_lib_tests.test_project_native_only_c_sources, "test_project_native_only_c_sources")
+			run_test (agent l_lib_tests.test_project_native_same_name_refused, "test_project_native_same_name_refused")
+			run_test (agent l_lib_tests.test_project_native_define_cannot_carry_a_command, "test_project_native_define_cannot_carry_a_command")
+			run_test (agent l_lib_tests.test_project_native_simple_eiffel_folder, "test_project_native_simple_eiffel_folder")
 			run_test (agent l_lib_tests.test_stage_result_success, "test_stage_result_success")
 			run_test (agent l_lib_tests.test_stage_result_failure, "test_stage_result_failure")
 			run_test (agent l_lib_tests.test_error_finder_gec, "test_error_finder_gec")
@@ -55,6 +62,9 @@ feature {NONE} -- Test Runners
 			run_test (agent l_e2e.test_t10_missing_folder_reported, "test_t10_missing_folder_reported")
 			run_test (agent l_e2e.test_t10_prompting_command_returns, "test_t10_prompting_command_returns")
 			run_test (agent l_e2e.test_ac2_new_then_build, "test_ac2_new_then_build")
+			run_test (agent l_e2e.test_native_c_reaches_the_library, "test_native_c_reaches_the_library")
+			run_test (agent l_e2e.test_silent_adb_does_not_hang_the_tool, "test_silent_adb_does_not_hang_the_tool")
+			run_test (agent l_e2e.test_stale_generated_c_is_cleared, "test_stale_generated_c_is_cleared")
 			run_test (agent l_e2e.test_ac4_aligned_and_signed, "test_ac4_aligned_and_signed")
 			run_test (agent l_e2e.test_fr008_incremental_skips_unchanged, "test_fr008_incremental_skips_unchanged")
 			run_test (agent l_e2e.test_fr011_dex_only_with_helper, "test_fr011_dex_only_with_helper")

@@ -27,6 +27,9 @@ feature {NONE} -- Initialization
 			create ecf_target.make_empty
 			create abis.make (2)
 			create permissions.make (0)
+			create native_sources.make (0)
+			create native_includes.make (0)
+			create native_defines.make (0)
 			create errors.make (0)
 		ensure
 			not_loaded: not is_loaded
@@ -61,6 +64,7 @@ feature -- Loading
 					read_android (al_root)
 					read_signing (al_root)
 					read_tools (al_root)
+					read_native (al_root)
 				else
 					across l_toml.last_errors as ic loop
 						add_error ("syntax", ic)
@@ -74,6 +78,7 @@ feature -- Loading
 			loaded: is_loaded
 			directory_set: directory = a_dir
 			valid_xor_errors: is_valid = errors.is_empty
+			defines_safe: across native_defines as ic all is_native_define (ic) end
 			errors_name_file_and_table: across errors as ic all ic.starts_with ({STRING_32} "eifphone.toml: [") end
 			release_key_resolved: attached keystore_path as al_k implies al_k.is_absolute
 		end
@@ -116,6 +121,38 @@ feature -- Access: [android]
 	target_sdk: INTEGER
 	uses_java_helper: BOOLEAN
 	permissions: ARRAYED_LIST [STRING_8]
+
+feature -- Access: [native]
+
+	native_sources: ARRAYED_LIST [PATH]
+			-- C files compiled into the app, for libraries that bring their own.
+
+	native_includes: ARRAYED_LIST [PATH]
+			-- Folders added to the C search path.
+
+	native_defines: ARRAYED_LIST [STRING_8]
+			-- NAME or NAME=value, passed to clang.
+
+	is_native_define (a_text: READABLE_STRING_8): BOOLEAN
+			-- Is `a_text' NAME or NAME=value, with nothing a command line could act on?
+		local
+			i, l_equals: INTEGER
+			c: CHARACTER_8
+		do
+			l_equals := a_text.index_of ('=', 1)
+			if not a_text.is_empty and then l_equals /= 1 and then not a_text [1].is_digit then
+				Result := True
+				from i := 1 until i > a_text.count or not Result loop
+					c := a_text [i]
+					if l_equals = 0 or i < l_equals then
+						Result := c.is_alpha or c.is_digit or c = '_'
+					elseif i > l_equals then
+						Result := c.is_alpha or c.is_digit or c = '_' or c = '.' or c = '-'
+					end
+					i := i + 1
+				end
+			end
+		end
 
 feature -- Access: [signing]
 
@@ -218,6 +255,9 @@ feature {NONE} -- Reading tables
 			password_env := Void
 			debug_keystore := Void
 			tool_overrides := Void
+			native_sources.wipe_out
+			native_includes.wipe_out
+			native_defines.wipe_out
 			errors.wipe_out
 		end
 
@@ -348,6 +388,98 @@ feature {NONE} -- Reading tables
 				tool_overrides := l_map
 			end
 		end
+
+	read_native (a_root: TOML_TABLE)
+			-- Extra C for libraries that bring their own, such as SQLite. The table is optional.
+		do
+			if attached a_root.table_item ("native") as al_t then
+				if attached string_list (al_t, "native", "sources", False) as al_l then
+					across al_l as ic loop
+						add_native_source (ic)
+					end
+				end
+				if attached string_list (al_t, "native", "include", False) as al_l then
+					across al_l as ic loop
+						add_native_include (ic)
+					end
+				end
+				if attached string_list (al_t, "native", "defines", False) as al_l then
+					across al_l as ic loop
+						if is_native_define (ic) then
+							native_defines.extend (ic)
+						else
+							add_error ("native", {STRING_32} "defines: %"" + ic.to_string_32 + "%" must be NAME or NAME=value")
+						end
+					end
+				end
+			end
+		end
+
+	add_native_source (a_text: STRING_8)
+			-- Record one C file, or say what is wrong with it.
+		local
+			l_path: PATH
+			l_name: STRING_32
+		do
+			l_path := native_path (a_text)
+			l_name := file_name_of (l_path)
+			if not l_name.ends_with ({STRING_32} ".c") then
+				add_error ("native", {STRING_32} "sources: " + a_text.to_string_32 + " is not a .c file")
+			elseif not (create {RAW_FILE}.make_with_path (l_path)).exists then
+				add_error ("native", {STRING_32} "sources: " + a_text.to_string_32 + " was not found")
+			elseif across native_sources as ic some file_name_of (ic).same_string (l_name) end then
+				add_error ("native", {STRING_32} "sources: two files are named " + l_name)
+			else
+				native_sources.extend (l_path)
+			end
+		end
+
+	add_native_include (a_text: STRING_8)
+			-- Record one folder, or say what is wrong with it.
+		local
+			l_path: PATH
+		do
+			l_path := native_path (a_text)
+			if (create {DIRECTORY}.make_with_path (l_path)).exists then
+				native_includes.extend (l_path)
+			else
+				add_error ("native", {STRING_32} "include: " + a_text.to_string_32 + " was not found")
+			end
+		end
+
+	native_path (a_text: STRING_8): PATH
+			-- `a_text' as an absolute path. A leading $SIMPLE_EIFFEL names the library root.
+		local
+			l_env: SIMPLE_ENV
+			l_root: STRING_32
+		do
+			if a_text.starts_with (Library_root_prefix) then
+				create l_env
+				if attached l_env.get ("SIMPLE_EIFFEL") as al_v and then not al_v.is_empty then
+					create l_root.make_from_string_general (al_v)
+				else
+					create l_root.make_from_string_general ({EIFPHONE_TOOLCHAIN}.Default_simple_eiffel)
+				end
+				l_root.append_string_general (a_text.substring (Library_root_prefix.count + 1, a_text.count))
+				Result := resolved (l_root)
+			else
+				Result := resolved (a_text.to_string_32)
+			end
+		ensure
+			absolute: Result.is_absolute
+		end
+
+	file_name_of (a_path: PATH): STRING_32
+			-- Last part of `a_path'.
+		do
+			if attached a_path.entry as al_entry then
+				Result := al_entry.name.to_string_32
+			else
+				Result := a_path.name.to_string_32
+			end
+		end
+
+	Library_root_prefix: STRING_8 = "$SIMPLE_EIFFEL"
 
 feature {NONE} -- Value helpers
 

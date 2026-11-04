@@ -63,6 +63,21 @@ feature -- Build (AC-2, AC-4, FR-008, FR-011)
 			assert ("signed", built_output.has_substring ("ok  sign"))
 		end
 
+	test_native_c_reaches_the_library
+			-- [native]: a project's own C is compiled, sees its define, and lands in the .so.
+		local
+			l_dir: PATH
+		do
+			l_dir := new_project ("nativec")
+			write_text (l_dir.extended ("probe.c"), "#ifndef PROBE_ON%N#error PROBE_ON missing%N#endif%Nint eifphone_native_probe (void) { return 41; }%N")
+			toml_append (l_dir, "%N[native]%Nsources = [%"probe.c%"]%Ndefines = [%"PROBE_ON%"]%N")
+			run_tool ({STRING_32} "build " + runner.quoted (l_dir) + {STRING_32} " --abi x86_64")
+			assert ("built: " + last_text, last_exit = 0)
+			run_command (runner.quoted (readelf) + {STRING_32} " -s -W "
+				+ runner.quoted (l_dir.extended ("build").extended ("apk").extended ("lib").extended ("x86_64").extended ("libapp.so")))
+			assert ("symbol present", last_text.has_substring ("eifphone_native_probe"))
+		end
+
 	test_ac4_aligned_and_signed
 			-- AC-4: Android's own tools accept the APK; every .so has 16 KB pages.
 		local
@@ -328,6 +343,34 @@ feature -- Device, through a fake adb (Task 12, Task 14)
 			run_tool ({STRING_32} "install " + text_of (d))
 			assert ("exit 5: " + last_text, last_exit = 5)
 			assert ("reason shown: " + last_text, last_text.has_substring ("INSTALL_FAILED_NO_ROOM"))
+		end
+
+	test_stale_generated_c_is_cleared
+			-- C left by another target must not be compiled into this one.
+		local
+			l_dir: PATH
+		do
+			l_dir := new_project ("stalec")
+			run_tool ({STRING_32} "build " + runner.quoted (l_dir) + {STRING_32} " --abi x86_64")
+			assert ("first build: " + last_text, last_exit = 0)
+			write_text (l_dir.extended ("build").extended ("gen").extended (".gobo").extended ("left_behind.c"), "#error left behind%N")
+			run_tool ({STRING_32} "build " + runner.quoted (l_dir) + {STRING_32} " --abi x86_64")
+			assert ("second build: " + last_text, last_exit = 0)
+		end
+
+	test_silent_adb_does_not_hang_the_tool
+			-- An adb that never answers is ended, and the tool says so, as a device problem.
+		local
+			d: PATH
+			l_env: SIMPLE_ENV
+		do
+			d := fake_adb_project ("silentadb", "@echo off%R%N:spin%R%Ngoto spin%R%N")
+			create l_env
+			l_env.set ("EIFPHONE_ADB_SECONDS", "2")
+			run_tool ({STRING_32} "install " + text_of (d))
+			l_env.unset ("EIFPHONE_ADB_SECONDS")
+			assert ("exit 5: " + last_text, last_exit = 5)
+			assert ("said why: " + last_text, last_text.has_substring ("did not answer"))
 		end
 
 	test_fr006_log_shows_device_lines

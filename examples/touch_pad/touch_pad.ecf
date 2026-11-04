@@ -17,6 +17,9 @@
 		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf">
 			<option><assertions precondition="false" postcondition="false" check="false" invariant="false" loop="false" supplier_precondition="false"/></option>
 		</library>
+		<library name="simple_sql" location="$SIMPLE_EIFFEL\simple_sql\simple_sql.ecf">
+			<option><assertions precondition="false" postcondition="false" check="false" invariant="false" loop="false" supplier_precondition="false"/></option>
+		</library>
 		<cluster name="src" location=".\src\"/>
 	</target>
 	<target name="touch_pad_checked">
@@ -31,6 +34,7 @@
 		</capability>
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
 		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf"/>
+		<library name="simple_sql" location="$SIMPLE_EIFFEL\simple_sql\simple_sql.ecf"/>
 		<cluster name="src" location=".\src\"/>
 	</target>
 </system>

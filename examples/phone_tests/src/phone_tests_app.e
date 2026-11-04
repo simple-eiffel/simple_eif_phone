@@ -34,6 +34,9 @@ feature {NONE} -- Initialization
 			t.run ("present_byte_order", agent present_byte_order)
 			t.run ("present_full_screen_time", agent present_full_screen_time)
 			t.run ("storage_round_trip", agent storage_round_trip)
+			t.run ("sql_round_trip", agent sql_round_trip)
+			t.run ("sql_full_text", agent sql_full_text)
+			t.run ("sql_hebrew_text", agent sql_hebrew_text)
 			t.run ("asset_read", agent asset_read)
 			t.run ("asset_missing", agent asset_missing)
 			t.run ("back_policy_round_trip", agent back_policy_round_trip)
@@ -63,7 +66,7 @@ feature {NONE} -- Access
 	seen: ARRAYED_LIST [INTEGER]
 			-- Kinds delivered so far by `wait_for'.
 
-	Total: INTEGER = 18
+	Total: INTEGER = 21
 
 feature {NONE} -- Self-contained tests
 
@@ -208,6 +211,73 @@ feature {NONE} -- Self-contained tests
 			Result := f.last_string.same_string ("eiffel on the phone")
 			f.close
 			f.delete
+		end
+
+	sql_path: STRING_8
+			-- A database file in the app's own folder.
+		do
+			Result := phone.storage.internal_path + "/sql_test.db"
+		end
+
+	sql_round_trip: BOOLEAN
+			-- 1,000 rows in one transaction survive closing and reopening the file.
+		local
+			l_db: SIMPLE_SQL_DATABASE
+			l_rows: SIMPLE_SQL_RESULT
+			i: INTEGER
+		do
+			create l_db.make (sql_path)
+			l_db.execute ("DROP TABLE IF EXISTS notes")
+			l_db.execute ("CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT)")
+			l_db.execute ("BEGIN")
+			from i := 1 until i > 1000 loop
+				l_db.execute ("INSERT INTO notes (body) VALUES ('note " + i.out + "')")
+				i := i + 1
+			end
+			l_db.execute ("COMMIT")
+			l_db.close
+			create l_db.make_read_only (sql_path)
+			l_rows := l_db.query ("SELECT body FROM notes WHERE id = 1000")
+			Result := l_rows.count = 1 and then l_rows.first.string_value ("body").same_string_general ("note 1000")
+			l_rows := l_db.query ("SELECT COUNT(*) AS n FROM notes")
+			Result := Result and then l_rows.first.integer_value ("n") = 1000
+			l_db.close
+		end
+
+	sql_full_text: BOOLEAN
+			-- FTS5 finds a word, and does not find one that is absent.
+		local
+			l_db: SIMPLE_SQL_DATABASE
+		do
+			create l_db.make (sql_path)
+			l_db.execute ("DROP TABLE IF EXISTS finder")
+			l_db.execute ("CREATE VIRTUAL TABLE finder USING fts5 (body)")
+			l_db.execute ("INSERT INTO finder (body) VALUES ('In the beginning God created')")
+			Result := l_db.query ("SELECT body FROM finder WHERE finder MATCH 'beginning'").count = 1
+				and then l_db.query ("SELECT body FROM finder WHERE finder MATCH 'absent'").count = 0
+				and then not l_db.has_error
+			l_db.close
+		end
+
+	sql_hebrew_text: BOOLEAN
+			-- Hebrew goes in as UTF-8 and comes back as the same characters.
+		local
+			l_db: SIMPLE_SQL_DATABASE
+			l_word: STRING_32
+			l_rows: SIMPLE_SQL_RESULT
+		do
+			create l_word.make_empty
+			across <<0x5D1, 0x5E8, 0x5D0, 0x5E9, 0x5D9, 0x5EA>> as ic loop
+				l_word.append_code (ic.to_natural_32)
+			end
+			create l_db.make (sql_path)
+			l_db.execute ("DROP TABLE IF EXISTS words")
+			l_db.execute ("CREATE TABLE words (body TEXT)")
+			l_db.execute ("INSERT INTO words (body) VALUES ('" + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_word) + "')")
+			l_rows := l_db.query ("SELECT body, length (body) AS n FROM words")
+			Result := l_rows.count = 1 and then l_rows.first.integer_value ("n") = 6
+				and then l_rows.first.string_value ("body").same_string (l_word)
+			l_db.close
 		end
 
 	asset_read: BOOLEAN

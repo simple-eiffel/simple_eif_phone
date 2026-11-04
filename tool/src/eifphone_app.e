@@ -310,18 +310,24 @@ feature {NONE} -- Device
 			-- Find the ready target for `selected_device'; without one, say why and set `exit_code'.
 		local
 			d: EIFPHONE_DEVICE
+			l_adb_failed: BOOLEAN
+			l_why: STRING_32
 		do
 			selected_device := Void
 			create d.make (a_b.tools)
 			d.set_log_file (a_b.build_folder.extended ("logs").extended ("adb.log"))
 			d.refresh
+			l_adb_failed := not d.last_succeeded
+			l_why := d.last_error
 			if attached a_device as al_s and then not al_s.is_empty then
 				d.choose (al_s)
 			end
 			if d.target_ready then
 				selected_device := d
 			else
-				if d.serials.is_empty then
+				if l_adb_failed then
+					say ({STRING_32} "device: " + l_why)
+				elseif d.serials.is_empty then
 					say ({STRING_32} "no device: start the emulator, or pair a phone")
 				else
 					say ({STRING_32} "more than one device: choose with --device <serial>")

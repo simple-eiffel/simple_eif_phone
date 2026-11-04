@@ -309,8 +309,13 @@ feature -- Names
 feature {NONE} -- Stages
 
 	do_generate_c
-			-- gec: Eiffel -> C (build/gen/.gobo).
+			-- gec: Eiffel -> C (build/gen/.gobo). C from an earlier run goes first: a target
+			-- that generates fewer files would otherwise leave stale ones to be compiled.
+			-- Hashes keep unchanged files from recompiling.
 		do
+			across files_with_extension (generated_folder, "c") as ic loop
+				(create {RAW_FILE}.make_with_path (ic)).delete
+			end
 			run_stage (Stage_generate_c, finder.Tool_gec, build_folder.extended ("gen"),
 				runner.quoted (tools.gec) + {STRING_32} " --cc=no --finalize --target=" + project.ecf_target.to_string_32
 					+ {STRING_32} " " + runner.quoted (project.directory.absolute_path.extended (project.ecf_name)))
@@ -637,6 +642,13 @@ feature {NONE} -- Stage support
 				+ {STRING_32} " -I" + runner.quoted (generated_folder) + {STRING_32} " -I" + runner.quoted (runtime_dir.extended ("c"))
 				+ {STRING_32} " -I" + runner.quoted (tools.native_app_glue) + {STRING_32} " -I" + runner.quoted (tools.boehm_gc_include)
 				+ {STRING_32} " -include " + runner.quoted (runtime_dir.extended ("c").extended ("sephone_fastjmp.h"))
+			Result.append ({STRING_32} " -I" + runner.quoted (tools.gec_runtime_include))
+			across project.native_includes as ic loop
+				Result.append ({STRING_32} " -I" + runner.quoted (ic))
+			end
+			across project.native_defines as ic loop
+				Result.append ({STRING_32} " -D" + ic.to_string_32)
+			end
 		end
 
 	generated_folder: PATH
@@ -646,17 +658,25 @@ feature {NONE} -- Stage support
 		end
 
 	c_sources: ARRAYED_LIST [PATH]
-			-- Generated C, the sephone glue and native_app_glue.
+			-- Generated C, the sephone glue, native_app_glue and any [native] sources.
 		do
 			Result := files_with_extension (generated_folder, "c")
 			Result.extend (runtime_dir.extended ("c").extended ("sephone_glue.c"))
 			Result.extend (tools.native_app_glue.extended ("android_native_app_glue.c"))
+			Result.append (project.native_sources)
 		end
 
 	object_of (a_abi: STRING_8; a_source: PATH): PATH
-			-- Object file for `a_source'.
+			-- Object file for `a_source'. [native] sources get their own prefix, so
+			-- they can never collide with a file gec generated.
+		local
+			l_prefix: STRING_32
 		do
-			Result := build_folder.extended ("obj").extended (a_abi).extended (base_name (a_source) + {STRING_32} ".o")
+			create l_prefix.make_empty
+			if across project.native_sources as ic some ic.same_as (a_source) end then
+				l_prefix.append ({STRING_32} "native_")
+			end
+			Result := build_folder.extended ("obj").extended (a_abi).extended (l_prefix + base_name (a_source) + {STRING_32} ".o")
 		end
 
 	base_name (a_path: PATH): STRING_32

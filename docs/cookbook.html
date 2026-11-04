@@ -127,6 +127,21 @@ if attached phone.assets.last_asset as al_data then
 end</code></pre>
             </section>
             <section>
+                <h2>Keep data in SQLite</h2>
+                <p><code>simple_sql</code> runs on the phone, full-text search included. Add it to your ECF, then add this to <code>eifphone.toml</code>:</p>
+                <pre><code>[native]
+sources = [&quot;$SIMPLE_EIFFEL/eiffel_sqlite_2025/Clib/sqlite3.c&quot;, &quot;$SIMPLE_EIFFEL/eiffel_sqlite_2025/Clib/esqlite.c&quot;]
+include = [&quot;$SIMPLE_EIFFEL/eiffel_sqlite_2025/Clib&quot;]
+defines = [&quot;SQLITE_THREADSAFE=1&quot;, &quot;SQLITE_ENABLE_FTS5&quot;, &quot;SQLITE_ENABLE_RTREE&quot;, &quot;SQLITE_ENABLE_GEOPOLY&quot;, &quot;SQLITE_ENABLE_MATH_FUNCTIONS&quot;, &quot;SQLITE_OMIT_LOAD_EXTENSION&quot;, &quot;SQLITE_ENABLE_COLUMN_METADATA&quot;, &quot;SQLITE_TEMP_STORE=3&quot;]</code></pre>
+                <p>Keep the file in the app's own folder:</p>
+                <pre><code>create l_db.make (phone.storage.internal_path + &quot;/notes.db&quot;)
+l_db.execute (&quot;CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, body TEXT)&quot;)
+l_db.execute (&quot;INSERT INTO notes (body) VALUES (&#x27;first note&#x27;)&quot;)
+l_rows := l_db.query (&quot;SELECT body FROM notes&quot;)
+l_db.close</code></pre>
+                <p><code>execute</code> takes UTF-8. For text beyond ASCII, convert it first with <code>{UTF_CONVERTER}.utf_32_string_to_utf_8_string_8</code>. <code>examples/touch_pad</code> saves its strokes this way.</p>
+            </section>
+            <section>
                 <h2>Write a line to the log</h2>
                 <pre><code>phone.log.set_tag (&quot;MyApp&quot;)
 phone.log.info (&quot;loaded &quot; + strokes.count.out + &quot; strokes&quot;)</code></pre>

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0] - unreleased
+
+### Added
+- **SQLite on the phone:** `simple_sql` runs unchanged, full-text search and Hebrew text included.
+- **`[native]` in `eifphone.toml`:** a project can name extra C sources, include folders and defines. Each is checked when the project loads.
+- **Touch pad:** saves strokes in a SQLite database, and brings in the save file of earlier versions.
+- **On-device tests:** three more, for SQLite. Total 21.
+
+### Fixed
+- **Old generated C is cleared before each build:** a target that generates fewer files could otherwise compile leftovers from the last one.
+- **A silent `adb` no longer hangs the tool:** it is ended after 5 minutes, and the tool exits with code 5. `EIFPHONE_ADB_SECONDS` sets a different limit.
+
 ## [0.1.0] - 2026-11-04
 
 ### Added
@@ -29,7 +41,6 @@
 
 ### Known limitations
 - The tool runs on Windows only. Threads and SCOOP are not supported on the phone yet.
-- An `adb` that never answers hangs the tool: the runner has no timeout.
 - `eifphone run` shows the first 3 seconds of the log; use `eifphone log` for the rest.
 - On-device tests have run on the emulator only. One real ARM phone was checked by hand.
 - Two one-off failures are unexplained: `tap_arrives` failed once after a stress session, and one stress run stopped on a crash from a process that was not identified. Both passed when repeated.
