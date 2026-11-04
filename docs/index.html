@@ -55,7 +55,7 @@
                 <p><strong>Version 0.4.0: early, working, not yet widely used.</strong></p>
                 <ul>
                 <li>101 tool tests, 59 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
-                <li>On the emulator, a scripted run of 48 steps drove real Android controls from Eiffel, and 14 more drove <code>simple_widgets</code> by touch. <code>simple_widgets</code>' own 7GUIs benchmark runs on Android with its source unchanged.</li>
+                <li>On the emulator, a scripted run of 48 steps drove real Android controls from Eiffel, and 22 more drove <code>simple_widgets</code> by touch, Hebrew typing included. <code>simple_widgets</code>' own 7GUIs benchmark runs on Android with its source unchanged.</li>
                 <li>On a real ARM phone, the touch pad took five fingers at once. Putting a full screen up took 1.8 ms on average and 6.5 ms at worst.</li>
                 <li>Random-input stress: 9,000 events on each of the fast and checked builds of the touch pad, with no crash.</li>
                 </ul>
@@ -66,8 +66,9 @@
 <li><strong>The tool runs on Windows only.</strong> Phone apps run on Android 8.0 (API 26) or later, on ARM64 and x86_64.</li>
 <li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
 <li><strong>Android's own controls and <code>simple_widgets</code> have only run on the emulator.</strong> Nothing in 0.4.0 has run on a real phone yet. ARM builds are made but have not been started.</li>
-<li><strong>Typing Hebrew from a keyboard has not been tried.</strong> Hebrew and emoji do go through a real text box and come back intact, but the emulator's test input is limited to plain letters.</li>
-<li><strong><code>simple_widgets</code> on the phone is young.</strong> Text uses cairo's plain built-in font, so Hebrew does not work there yet. The keyboard can cover a text box low on the screen. <code>android_shell</code> has no printer, spell checker or screen reader. Android's own controls have none of these gaps.</li>
+<li><strong>Typing Hebrew has only been tried on the emulator's keyboard.</strong> The letters reached a <code>simple_widgets</code> text box in order. Samsung's keyboard has not been tried.</li>
+<li><strong><code>simple_widgets</code> on the phone is young.</strong> The keyboard can cover a text box low on the screen. <code>android_shell</code> has no printer, spell checker or screen reader, and there is no copy and paste. Android's own controls have none of these gaps.</li>
+<li><strong>Shaped text in <code>simple_widgets</code> has limits.</strong> Fonts are found by file name in <code>/system/fonts</code>, so a phone that names them differently shows boxes. Emoji show as boxes, because no emoji pictures are packed. Lines break only after a space, hyphen or maqaf.</li>
 <li><strong>The general route reaches public methods that take nothing, a whole number, a true/false or a text.</strong> A method with other arguments needs its own class.</li>
 <li><strong>Read-aloud has only run on the emulator, which has no sound.</strong> The engine ran each sentence to its end, but nobody has heard it yet.</li>
 <li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>

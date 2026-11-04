@@ -20,6 +20,10 @@ sleep 5
 check "app starts" "starting"
 check "the first frame reaches the screen" "frame "
 shot w_first
+check "pointed Hebrew shapes right to left, nothing missing" "shaped hebrew rtl True whole True notes 0"
+check "polytonic Greek shapes, nothing missing" "shaped greek rtl False whole True notes 0"
+check "a picture character is reported, not a crash" "note emoji 2"
+check "Hebrew wraps in a narrow space" "wrapped lines [2-9] whole True"
 set -- $(pos button); $ADB shell input tap $1 $2
 check "a tap reaches a button" "tapped 1"
 sleep 0.5
@@ -40,13 +44,32 @@ shot w_typed
 set -- $(pos check); $ADB shell input tap $1 $2
 sleep 2
 if $ADB shell dumpsys input_method | grep -q "mInputShown=false"; then echo "PASS leaving the text box puts the keyboard away"; pass=$((pass + 1)); else echo "FAIL leaving the text box puts the keyboard away"; fail=$((fail + 1)); fi
+# Hebrew on the emulator's own keyboard. `input text' can only send plain letters, so
+# this taps the keys. The positions are this emulator's: 1080 by 2400, keyboard shown.
+KEYBOARD=$($ADB shell settings get secure selected_input_method_subtype | tr -d '\r')
+$ADB shell settings put secure selected_input_method_subtype 1727731901
+set -- $(pos box); $ADB shell input tap $1 $2
+sleep 3
+for key in "54 1854" "810 1854" "702 1686" "918 1686"; do $ADB shell input tap $key; sleep 1; done
+check "Hebrew letters from the keyboard arrive in order" "last letter 1501"
+check "all four of them" "box holds 8 letters"
+shot w_hebrew_typed
+set -- $(pos check); $ADB shell input tap $1 $2
+sleep 2
+$ADB shell settings put secure selected_input_method_subtype -- "$KEYBOARD"
 set -- $(pos list); $ADB shell input tap $1 $2
 check "a tap selects a row" "row "
 shot w_row
 L=$(pos list); set -- $L
-$ADB shell input swipe $1 1800 $1 700 300; sleep 1
+X=$1; set -- $(pos box)
+$ADB shell input swipe $X 1800 $X $2 300; sleep 1
 shot w_scrolled
 check "a swipe scrolls the list" "first row [1-9]"
+if $ADB shell dumpsys input_method | grep -q "mInputShown=false"; then echo "PASS a swipe that ends on a text box brings up no keyboard"; pass=$((pass + 1)); else echo "FAIL a swipe that ends on a text box brings up no keyboard"; fail=$((fail + 1)); fi
+set -- $(pos box); $ADB shell input tap $1 $2
+sleep 2
+$ADB shell input keyevent 4; sleep 2
+if $ADB shell dumpsys window | grep mCurrentFocus | grep -q PopupWindow; then echo "FAIL one Back closes the keyboard and its popup"; fail=$((fail + 1)); elif $ADB shell dumpsys input_method | grep -q "mInputShown=true"; then echo "FAIL one Back closes the keyboard and its popup"; fail=$((fail + 1)); elif $ADB shell pidof $PKG > /dev/null; then echo "PASS one Back closes the keyboard and its popup"; pass=$((pass + 1)); else echo "FAIL one Back closes the keyboard and its popup"; fail=$((fail + 1)); fi
 $ADB shell input keyevent 3; sleep 2
 $ADB shell am start -n $PKG/io.github.simple_eiffel.eifphone.EifPhoneActivity > /dev/null; sleep 3
 shot w_back

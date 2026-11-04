@@ -10,13 +10,16 @@
 - **cairo for Android:** `runtime/native/build_cairo.sh` builds it and what it needs. `[native] libraries`, `$ABI` and `$EIFPHONE_NATIVE` link it. See `examples/cairo_draw`.
 - **`simple_widgets` on the phone, unchanged** (cluster `android_shell`, `simple_widgets_android.ecf`). See `examples/widgets_demo` and `examples/widgets_7guis`.
 - **`phone.keyboard`:** the phone's keyboard for screens that draw their own text boxes.
+- **Hebrew, Greek and real fonts in `simple_widgets`** (cluster `android_shaping`, `window.enable_shaped_text`). HarfBuzz shapes, FriBidi orders, and fonts come from `/system/fonts`. `runtime/native/build_text.sh` builds both libraries. `simple_shaping`'s source is unchanged.
 
 ### Changed
 - **Apps start in their own private folder,** so plain relative file names work. They used to start in `/`, which they cannot write.
 
 ### Known limitations
 - Nothing in this version has run on a real phone yet.
-- `simple_widgets` on the phone has no Hebrew yet.
+- Fonts in `simple_widgets` are found by file name, so a phone that names them differently shows boxes.
+- Emoji in `simple_widgets` show as boxes: no emoji pictures are packed.
+- Lines in `simple_widgets` break only after a space, hyphen or maqaf.
 
 ## [0.3.0] - unreleased
 

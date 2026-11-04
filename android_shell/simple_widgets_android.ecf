@@ -18,7 +18,7 @@
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
 		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL/simple_eif_phone/simple_eif_phone.ecf"/>
 		<library name="simple_cairo" location="$SIMPLE_EIFFEL/simple_cairo/simple_cairo.ecf"/>
-		<library name="simple_shaping" location="$SIMPLE_EIFFEL/simple_shaping/simple_shaping.ecf"/>
+		<library name="simple_shaping" location="$SIMPLE_EIFFEL/simple_eif_phone/android_shaping/simple_shaping_android.ecf"/>
 		<library name="simple_document" location="$SIMPLE_EIFFEL/simple_document/simple_document.ecf"/>
 		<library name="simple_markdown" location="$SIMPLE_EIFFEL/simple_markdown/simple_markdown.ecf"/>
 		<library name="simple_datetime" location="$SIMPLE_EIFFEL/simple_datetime/simple_datetime.ecf"/>

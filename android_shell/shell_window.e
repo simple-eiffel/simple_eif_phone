@@ -313,7 +313,10 @@ feature {NONE} -- Android's events
 						dispatch (Event_window_release, a_event.x - area_left, a_event.y - area_top)
 					end
 					is_finger_down := False
-					refresh_keyboard (a_event.x - area_left, a_event.y - area_top)
+						-- A scroll can end anywhere, and says nothing about typing.
+					if finger_mode /= Mode_scrolling then
+						refresh_keyboard (a_event.x - area_left, a_event.y - area_top)
+					end
 				end
 			when Kind_keyboard_text then
 				across a_event.text as ic loop

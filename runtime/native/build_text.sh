@@ -11,6 +11,9 @@ export PYTHONPATH="$(cygpath -w "$NATIVE/tools")"
 MESON="python -m mesonbuild.mesonmain"
 export PATH="$NATIVE/tools/bin:$PATH"
 export MSYS_NO_PATHCONV=1   # keep Git Bash from rewriting /sysroot
+# FriBidi builds its table makers for the PC, so meson needs a PC compiler too.
+# Git Bash has its own `link`, which must not hide Microsoft's.
+CL=$(command -v cl) && export PATH="$(dirname "$CL"):$PATH"
 
 one () {   # one <abi> <source folder> <meson options...>
   local abi=$1 src=$2 work="$NATIVE/build-$2-$1" out="$NATIVE/out/$1"
@@ -22,6 +25,9 @@ one () {   # one <abi> <source folder> <meson options...>
   $MESON compile -C "$(cygpath -m "$work")" || return 1
   $MESON install -C "$(cygpath -m "$work")" --no-rebuild --destdir "$(cygpath -m "$out")" || return 1
 }
+
+# FriBidi asks the phone's compiler which headers the PC's compiler has. Ask the PC's.
+sed -i "s/^native_cc = meson.get_compiler('c')/native_cc = meson.get_compiler('c', native: true)/" "$NATIVE/src/$FRIBIDI/gen.tab/meson.build"
 
 [ $# -eq 0 ] && set -- arm64-v8a x86_64
 for abi in "$@"; do

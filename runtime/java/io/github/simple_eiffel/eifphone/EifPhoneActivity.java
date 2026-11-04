@@ -13,6 +13,7 @@ import android.text.InputType;
 import android.text.Selection;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.PopupWindow;
@@ -135,7 +136,18 @@ public class EifPhoneActivity extends NativeActivity {
 		if (keyboardWindow != null && keyboardWindow.isShowing()) {
 			return;
 		}
-		keyboardBox = new EditText(this);
+		keyboardBox = new EditText(this) {
+			// Back closes the keyboard and its popup together, or it would take a second
+			// Back to close the popup, which nobody can see.
+			@Override
+			public boolean onKeyPreIme(int key, KeyEvent event) {
+				if (key == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP) {
+					keyboardWindow.dismiss();
+					return true;
+				}
+				return super.onKeyPreIme(key, event);
+			}
+		};
 		keyboardBox.setSingleLine(true);
 		keyboardBox.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
 		keyboardBox.setText(KEYBOARD_MARK);

@@ -54,6 +54,7 @@ For complete documentation, see [the docs site](https://simple-eiffel.github.io/
 - Read-aloud and the file picker, Hebrew included, through a small fixed Java helper
 - Android's own controls from Eiffel: buttons, text boxes with the phone's keyboard, lists of any length, dialogs and pickers, and any other control by name
 - `simple_cairo` and `simple_widgets` on the phone, unchanged, through the `android_shell` cluster, including its 7GUIs benchmark
+- Hebrew, Greek and real fonts in `simple_widgets`, through HarfBuzz and FriBidi
 - Contracts throughout, with a fast build for live drawing and a checked build for development
 - On-device test runner, and clear errors that name the failed stage
 
