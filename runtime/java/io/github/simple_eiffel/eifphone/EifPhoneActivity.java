@@ -14,8 +14,12 @@ import android.text.Selection;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.PopupWindow;
 
 import java.io.File;
@@ -47,6 +51,7 @@ public class EifPhoneActivity extends NativeActivity {
 	private static final int KEYBOARD_BACKSPACE = 47;
 	private static final int KEYBOARD_ENTER = 48;
 	private static final int KEYBOARD_CLOSED = 49;
+	private static final int KEYBOARD_TOP = 63;
 
 	private static final int FAILED_NO_ENGINE = 1;
 	private static final int FAILED_LANGUAGE = 2;
@@ -64,6 +69,7 @@ public class EifPhoneActivity extends NativeActivity {
 	private PopupWindow keyboardWindow;
 	private EditText keyboardBox;
 	private boolean keyboardResetting;
+	private int keyboardTop;
 
 	private static native void sephoneEvent(int kind, int code, byte[] text);
 
@@ -131,6 +137,8 @@ public class EifPhoneActivity extends NativeActivity {
 	/**
 	 * NativeActivity's window takes no text, so a hidden one-pixel box in a popup
 	 * window receives it. Everything typed goes to Eiffel, and the box is emptied.
+	 * The popup fills the screen, unseen and letting touches through, because only
+	 * a window the keyboard overlaps is told where the keyboard is.
 	 */
 	private void openKeyboard() {
 		if (keyboardWindow != null && keyboardWindow.isShowing()) {
@@ -165,16 +173,37 @@ public class EifPhoneActivity extends NativeActivity {
 				}
 			}
 		});
-		keyboardWindow = new PopupWindow(keyboardBox, 1, 1, true);
+		FrameLayout holder = new FrameLayout(this);
+		holder.addView(keyboardBox, new FrameLayout.LayoutParams(1, 1));
+		holder.setOnApplyWindowInsetsListener((view, insets) -> {
+			int bottom = Build.VERSION.SDK_INT >= 30
+				? insets.getInsets(WindowInsets.Type.ime()).bottom
+				: insets.getSystemWindowInsetBottom();
+			view.post(() -> tellKeyboardTop(view, bottom));
+			return insets;
+		});
+		keyboardWindow = new PopupWindow(holder, ViewGroup.LayoutParams.MATCH_PARENT,
+			ViewGroup.LayoutParams.MATCH_PARENT, true);
+		keyboardWindow.setTouchable(false);   // the app below still takes touches
 		keyboardWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NEEDED);
 		// A request made now would come before the popup has the focus, and be dropped.
 		keyboardWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-		if (Build.VERSION.SDK_INT >= 29) {
-			keyboardWindow.setTouchModal(false);   // the app below still takes touches
-		}
-		keyboardWindow.setOnDismissListener(() -> send(KEYBOARD_CLOSED, 0, ""));
+		keyboardWindow.setOnDismissListener(() -> {
+			keyboardTop = 0;
+			send(KEYBOARD_CLOSED, 0, "");
+		});
 		keyboardWindow.showAtLocation(getWindow().getDecorView(), Gravity.TOP | Gravity.START, 0, 0);
 		keyboardBox.requestFocus();
+	}
+
+	private void tellKeyboardTop(View view, int bottom) {
+		int[] place = new int[2];
+		view.getLocationOnScreen(place);
+		int top = bottom > 0 ? place[1] + view.getHeight() - bottom : 0;
+		if (top != keyboardTop) {
+			keyboardTop = top;
+			send(KEYBOARD_TOP, top, "");
+		}
 	}
 
 	private void keyboardTyped(Editable box) {

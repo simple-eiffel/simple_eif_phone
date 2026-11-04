@@ -86,6 +86,17 @@ static void set_weight(st_font *f, int weight)
 	}
 }
 
+int st_file_covers(const char *path, uint32_t code)
+{
+	FT_Face face;
+	int result;
+	if (!s_ft && FT_Init_FreeType(&s_ft) != 0) return 0;
+	if (FT_New_Face(s_ft, path, 0, &face) != 0) return 0;
+	result = FT_Get_Char_Index(face, code) != 0;
+	FT_Done_Face(face);
+	return result;
+}
+
 void *st_font_open(const char *path, int weight, int italic)
 {
 	st_font *f;

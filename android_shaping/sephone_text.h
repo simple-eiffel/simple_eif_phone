@@ -21,6 +21,7 @@ int st_script_latin(void);
 
 /* Fonts. `st_font_open' answers NULL if the file cannot be used. */
 void *st_font_open(const char *path, int weight, int italic);
+int st_file_covers(const char *path, uint32_t code);   /* does the file draw `code'? */
 void st_font_close(void *font);
 double st_font_ascent(void *font, int pixel_size);
 double st_font_descent(void *font, int pixel_size);

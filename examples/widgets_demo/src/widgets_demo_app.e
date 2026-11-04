@@ -26,12 +26,14 @@ feature {NONE} -- Initialization
 			create l_greek.make (Greek_line, {SW_PAINTER}.Role_ui, 20.0, False)
 			create status.make_ui ("Nothing tapped yet")
 			create box.make_single_line ("")
+			create low_box.make_single_line ("")
 			create list.make (600.0)
 			create check_box.make ("A check box", False, Void)
 			create button.make_primary ("Tap me", Void)
 			check_box.set_on_change (agent on_check)
 			button.set_on_click (agent on_tap)
 			box.set_on_change (agent on_typed)
+			low_box.set_on_change (agent on_low_typed)
 			list.set_grow (1.0)
 			list.set_row_count (5000)
 			list.set_row_height (32.0 * window.density)
@@ -46,6 +48,7 @@ feature {NONE} -- Initialization
 			l_root.put (box)
 			l_root.put (check_box)
 			l_root.put (list)
+			l_root.put (low_box)
 			window.set_root (l_root)
 			window.set_on_tick (agent on_tick)
 			window.set_wants_typing (agent takes_typing_at)
@@ -64,11 +67,18 @@ feature {NONE} -- Reactions
 				say_place ("check", check_box)
 				say_place ("box", box)
 				say_place ("list", list)
+				say_place ("low", low_box)
 				window.phone.log.info ("widgets: frame " + beats.out)
 				say_shaping ("hebrew", Hebrew_line)
 				say_shaping ("greek", Greek_line)
 				say_shaping ("emoji", Emoji_line)
 				say_wrapping
+				say_fonts
+			end
+			if window.phone.keyboard.top /= last_top or window.pan /= last_pan then
+				last_top := window.phone.keyboard.top
+				last_pan := window.pan
+				window.phone.log.info ("widgets: keyboard top " + last_top.out + " pan " + last_pan.out)
 			end
 			if list.first_visible /= last_first then
 				last_first := list.first_visible
@@ -98,6 +108,38 @@ feature {NONE} -- Reactions
 			end
 		end
 
+	say_fonts
+			-- Fonts under other names: a folder with a telling name, one with none,
+			-- and one with no Hebrew in it at all.
+		do
+			say_font_folder ("named", "MyHebrewFace.ttf", "NotoSansHebrew-Regular.ttf")
+			say_font_folder ("plain", "Zeta.ttf", "NotoSansHebrew-Regular.ttf")
+			say_font_folder ("none", "Zeta.ttf", "Roboto-Regular.ttf")
+		end
+
+	say_font_folder (a_folder, a_name, a_system_file: STRING_8)
+			-- Log whether Hebrew is found among fonts holding only a copy of `a_system_file' as `a_name'.
+		local
+			l_registry: FONT_REGISTRY
+			l_source, l_copy: RAW_FILE
+			l_folder: DIRECTORY
+		do
+			create l_folder.make ("fonts_" + a_folder)
+			if not l_folder.exists then
+				l_folder.create_dir
+				create l_source.make_open_read ("/system/fonts/" + a_system_file)
+				create l_copy.make_open_write ("fonts_" + a_folder + "/" + a_name)
+				l_source.copy_to (l_copy)
+				l_source.close
+				l_copy.close
+			end
+			create l_registry.make
+			l_registry.set_fonts_folder ("fonts_" + a_folder + "/")
+			window.phone.log.info ("widgets: fonts " + a_folder + " hebrew "
+				+ l_registry.family_exists ({STRING_32} "Noto Sans Hebrew").out + " latin "
+				+ l_registry.family_exists ({STRING_32} "Roboto").out)
+		end
+
 	say_wrapping
 			-- Log how the Hebrew line breaks in a narrow space.
 		do
@@ -122,6 +164,11 @@ feature {NONE} -- Reactions
 			if not box.text.is_empty then
 				window.phone.log.info ("widgets: last letter " + box.text.code (box.text.count).out)
 			end
+		end
+
+	on_low_typed
+		do
+			window.phone.log.info ("widgets: low box holds " + low_box.text.count.out + " letters")
 		end
 
 	on_check
@@ -167,7 +214,7 @@ feature {NONE} -- Implementation
 	list: SW_LIST
 	button: SW_BUTTON
 	check_box: SW_CHECK_BOX
-	box: SW_TEXT_BOX
-	taps, beats, last_first: INTEGER
+	box, low_box: SW_TEXT_BOX
+	taps, beats, last_first, last_top, last_pan: INTEGER
 
 end

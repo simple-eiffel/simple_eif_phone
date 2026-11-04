@@ -637,6 +637,9 @@ selection_in_range: selected_index &gt;= 0 and selected_index &lt;= row_count</d
 <div class="feature"><h4>is_shown: BOOLEAN</h4>
 <p>Has the keyboard been asked for, and not put away?</p>
 </div>
+<div class="feature"><h4>top: INTEGER</h4>
+<p>The keyboard&#x27;s top edge in screen pixels; 0 while Android has not said, or it is gone.</p>
+</div>
 <div class="feature"><h4>is_available: BOOLEAN</h4>
 <p>Does this app carry the Java helper?</p>
 </div>
@@ -1128,6 +1131,9 @@ time_non_negative: time_ms &gt;= 0</div>
 <div class="feature"><h4>Kind_control_failed: INTEGER = 61</h4>
 </div>
 <div class="feature"><h4>Kind_control_back: INTEGER = 62</h4>
+</div>
+<div class="feature"><h4>Kind_keyboard_top: INTEGER = 63</h4>
+<p>The keyboard&#x27;s top edge in screen pixels moved: `service_code&#x27;, 0 if it is gone.</p>
 </div>
 <h3>Families</h3>
 <div class="feature"><h4>is_lifecycle_kind (a_k: INTEGER): BOOLEAN</h4>

@@ -24,6 +24,9 @@ check "pointed Hebrew shapes right to left, nothing missing" "shaped hebrew rtl 
 check "polytonic Greek shapes, nothing missing" "shaped greek rtl False whole True notes 0"
 check "a picture character is reported, not a crash" "note emoji 2"
 check "Hebrew wraps in a narrow space" "wrapped lines [2-9] whole True"
+check "a Hebrew font is found by its name" "fonts named hebrew True"
+check "a Hebrew font is found by what it draws" "fonts plain hebrew True"
+check "no Hebrew font is reported, not a crash" "fonts none hebrew False latin True"
 set -- $(pos button); $ADB shell input tap $1 $2
 check "a tap reaches a button" "tapped 1"
 sleep 0.5
@@ -70,6 +73,21 @@ set -- $(pos box); $ADB shell input tap $1 $2
 sleep 2
 $ADB shell input keyevent 4; sleep 2
 if $ADB shell dumpsys window | grep mCurrentFocus | grep -q PopupWindow; then echo "FAIL one Back closes the keyboard and its popup"; fail=$((fail + 1)); elif $ADB shell dumpsys input_method | grep -q "mInputShown=true"; then echo "FAIL one Back closes the keyboard and its popup"; fail=$((fail + 1)); elif $ADB shell pidof $PKG > /dev/null; then echo "PASS one Back closes the keyboard and its popup"; pass=$((pass + 1)); else echo "FAIL one Back closes the keyboard and its popup"; fail=$((fail + 1)); fi
+# A text box low on the screen: the keyboard must not cover it.
+set -- $(pos low); LOW_X=$1; LOW_Y=$2
+$ADB shell input tap $LOW_X $LOW_Y
+sleep 3
+check "the drawing slides up clear of the keyboard" "keyboard top [1-9][0-9]* pan [1-9]"
+shot w_low_box
+line=$($ADB logcat -d -s Eiffel:* | grep "widgets: keyboard top" | tail -1 | sed "s/.*keyboard top //")
+TOP=${line%% *}; PAN=${line##* }
+if [ "$((LOW_Y - PAN))" -lt "$TOP" ]; then echo "PASS the low box stands above the keyboard ($((LOW_Y - PAN)) above $TOP)"; pass=$((pass + 1)); else echo "FAIL the low box is under the keyboard ($((LOW_Y - PAN)) against $TOP)"; fail=$((fail + 1)); fi
+$ADB shell input text 'low'
+check "typing reaches the low box" "low box holds 3 letters"
+rows=$($ADB logcat -d -s Eiffel:* | grep -c "widgets: row ")
+set -- $(pos list); $ADB shell input tap $1 $(($2 - PAN)); sleep 2
+if [ "$($ADB logcat -d -s Eiffel:* | grep -c "widgets: row ")" -gt "$rows" ]; then echo "PASS a tap lands true while the drawing is slid up"; pass=$((pass + 1)); else echo "FAIL a tap lands true while the drawing is slid up"; fail=$((fail + 1)); fi
+check "the drawing comes back" "keyboard top 0 pan 0"
 $ADB shell input keyevent 3; sleep 2
 $ADB shell am start -n $PKG/io.github.simple_eiffel.eifphone.EifPhoneActivity > /dev/null; sleep 3
 shot w_back

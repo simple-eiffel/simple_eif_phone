@@ -74,6 +74,8 @@ feature -- Codes: Android's controls
 	Kind_control_called: INTEGER = 60
 	Kind_control_failed: INTEGER = 61
 	Kind_control_back: INTEGER = 62
+	Kind_keyboard_top: INTEGER = 63
+			-- The keyboard's top edge in screen pixels moved: `service_code', 0 if it is gone.
 
 feature -- Families
 
@@ -125,7 +127,7 @@ feature -- Families
 	is_keyboard_kind (a_k: INTEGER): BOOLEAN
 			-- Is `a_k' from the phone's keyboard?
 		do
-			Result := Kind_keyboard_text <= a_k and a_k <= Kind_keyboard_closed
+			Result := (Kind_keyboard_text <= a_k and a_k <= Kind_keyboard_closed) or a_k = Kind_keyboard_top
 		end
 
 	is_service_kind (a_k: INTEGER): BOOLEAN
@@ -172,6 +174,7 @@ feature -- Names
 			when Kind_keyboard_backspace then Result := "keyboard_backspace"
 			when Kind_keyboard_enter then Result := "keyboard_enter"
 			when Kind_keyboard_closed then Result := "keyboard_closed"
+			when Kind_keyboard_top then Result := "keyboard_top"
 			when Kind_control_clicked then Result := "control_clicked"
 			when Kind_control_changed then Result := "control_changed"
 			when Kind_control_rows then Result := "control_rows"

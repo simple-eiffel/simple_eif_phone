@@ -32,6 +32,9 @@ feature -- Access
 		end
 
 	area_top: INTEGER
+
+	pan: INTEGER
+			-- How many pixels the drawing is slid up, clear of the keyboard.
 			-- How far down the screen the app's area starts, below the status bar.
 
 	density: REAL_64
@@ -253,9 +256,10 @@ feature -- Services
 				phone.screen.begin_frame
 				if phone.screen.in_frame then
 					phone.screen.fill_rect (0, 0, phone.screen.width, area_top, backdrop_rgb)
-					phone.screen.fill_rect (0, area_top + frame_height, phone.screen.width,
-						phone.screen.height - area_top - frame_height, backdrop_rgb)
-					phone.screen.present_argb_at (al_image.data, frame_width, frame_height, al_image.stride, area_left, area_top)
+					phone.screen.fill_rect (0, area_top + frame_height - pan, phone.screen.width,
+						phone.screen.height - area_top - frame_height + pan, backdrop_rgb)
+					phone.screen.present_argb_at (al_image.data + pan * al_image.stride, frame_width, frame_height - pan,
+						al_image.stride, area_left, area_top)
 					phone.screen.end_frame
 				end
 			end
@@ -289,19 +293,21 @@ feature {NONE} -- Android's events
 				dispatch (Event_window_expose, 0, 0)
 			when Kind_redraw_needed then
 				dispatch (Event_window_expose, 0, 0)
+			when Kind_keyboard_top, Kind_keyboard_closed then
+				place_for_keyboard
 			when Kind_touch_down then
 				if not is_finger_down then
 					is_finger_down := True
 					finger := a_event.pointer_id
 					finger_x := a_event.x - area_left
-					finger_y := a_event.y - area_top
+					finger_y := a_event.y - area_top + pan
 					last_y := finger_y
 					finger_time := tick_ms
 					finger_mode := Mode_undecided
 				end
 			when Kind_touch_move then
 				if is_finger_down and then a_event.pointer_id = finger then
-					finger_moved (a_event.x - area_left, a_event.y - area_top)
+					finger_moved (a_event.x - area_left, a_event.y - area_top + pan)
 				end
 			when Kind_touch_up then
 				if is_finger_down and then a_event.pointer_id = finger then
@@ -310,12 +316,12 @@ feature {NONE} -- Android's events
 						finger_mode := Mode_dragging
 					end
 					if finger_mode = Mode_dragging then
-						dispatch (Event_window_release, a_event.x - area_left, a_event.y - area_top)
+						dispatch (Event_window_release, a_event.x - area_left, a_event.y - area_top + pan)
 					end
 					is_finger_down := False
 						-- A scroll can end anywhere, and says nothing about typing.
 					if finger_mode /= Mode_scrolling then
-						refresh_keyboard (a_event.x - area_left, a_event.y - area_top)
+						refresh_keyboard (a_event.x - area_left, a_event.y - area_top + pan)
 					end
 				end
 			when Kind_keyboard_text then
@@ -368,11 +374,30 @@ feature {NONE} -- Android's events
 		do
 			if attached wants_typing as al_query and then phone.keyboard.is_available then
 				if al_query.item ([a_x, a_y]) then
+					typing_y := a_y
 					phone.keyboard.show
+					place_for_keyboard
 				elseif phone.keyboard.is_shown then
 					phone.keyboard.hide
 				end
 			end
+		end
+
+	place_for_keyboard
+			-- Slide the drawing up just enough to keep what is being typed in above the keyboard.
+		local
+			l_pan: INTEGER
+		do
+			if phone.keyboard.is_shown and phone.keyboard.top > 0 then
+				l_pan := (typing_y + area_top + (Typing_room * density).truncated_to_integer - phone.keyboard.top)
+					.max (0).min ((frame_height - 1).max (0))
+			end
+			if l_pan /= pan then
+				pan := l_pan
+				dispatch (Event_window_expose, 0, 0)
+			end
+		ensure
+			in_the_frame: pan >= 0
 		end
 
 	finger_is_undecided: BOOLEAN
@@ -390,6 +415,12 @@ feature {NONE} -- Implementation
 			-- The pointer being followed.
 
 	finger_x, finger_y, last_y, finger_time, finger_mode: INTEGER
+
+	Typing_room: INTEGER = 56
+			-- Density-independent pixels kept clear below a tap on a text box.
+
+	typing_y: INTEGER
+			-- Where in the drawing the last tap on a text box was.
 
 	Mode_undecided: INTEGER = 0
 	Mode_scrolling: INTEGER = 1
