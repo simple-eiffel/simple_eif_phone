@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 #include "sephone.h"
@@ -512,17 +513,22 @@ void sephone_frame_fill(int x, int y, int w, int h, int rgb)
 	}
 }
 
-void sephone_frame_present_argb(const void *pixels, int width, int height, int stride)
+void sephone_frame_present_argb_at(const void *pixels, int width, int height, int stride, int x, int y)
 {
 	int rows, cols, r, c;
-	if (!s_locked || !pixels) return;
-	rows = height < s_buf.height ? height : s_buf.height;
-	cols = width < s_buf.width ? width : s_buf.width;
+	if (!s_locked || !pixels || x < 0 || y < 0) return;
+	rows = height < s_buf.height - y ? height : s_buf.height - y;
+	cols = width < s_buf.width - x ? width : s_buf.width - x;
 	for (r = 0; r < rows; r++) {
 		const uint32_t *src = (const uint32_t *)((const char *)pixels + (size_t)r * (size_t)stride);
-		uint32_t *dst = (uint32_t *)s_buf.bits + (size_t)r * (size_t)s_buf.stride;
+		uint32_t *dst = (uint32_t *)s_buf.bits + (size_t)(r + y) * (size_t)s_buf.stride + (size_t)x;
 		for (c = 0; c < cols; c++) dst[c] = sephone_rgbx(src[c] & 0xFFFFFFu);   /* cairo ARGB32: 0xAARRGGBB */
 	}
+}
+
+void sephone_frame_present_argb(const void *pixels, int width, int height, int stride)
+{
+	sephone_frame_present_argb_at(pixels, width, height, stride, 0, 0);
 }
 
 uint32_t sephone_frame_peek(int x, int y)
@@ -702,6 +708,13 @@ void android_main(struct android_app *app)
 	sephone_redirect_output();
 	if ((*app->activity->vm)->AttachCurrentThread(app->activity->vm, &s_env, NULL) != 0) s_env = NULL;
 	sephone_java_setup();
+	/* Android starts an app in /, which it cannot write. Plain relative file names
+	   work from the app's own folder, as they do on a PC. */
+	if (app->activity->internalDataPath) {
+		mkdir(app->activity->internalDataPath, 0700);
+		if (chdir(app->activity->internalDataPath) != 0)
+			__android_log_write(ANDROID_LOG_WARN, SEPHONE_TAG, "android_main: cannot enter the app folder");
+	}
 	__android_log_write(ANDROID_LOG_INFO, SEPHONE_TAG, "android_main: starting Eiffel");
 	GE_main(1, argv);
 	__android_log_write(ANDROID_LOG_INFO, SEPHONE_TAG, "android_main: Eiffel returned; ending the process");

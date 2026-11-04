@@ -220,6 +220,7 @@ int  sephone_frame_lock(void);      /* 1 if locked */
 void sephone_frame_unlock(void);    /* unlock and post */
 void sephone_frame_fill(int x, int y, int w, int h, int rgb);
 void sephone_frame_present_argb(const void *pixels, int width, int height, int stride);
+void sephone_frame_present_argb_at(const void *pixels, int width, int height, int stride, int x, int y);
 uint32_t sephone_frame_peek(int x, int y); /* TEST ONLY: buffer word at (x,y) while locked */
 
 /* Metrics. */

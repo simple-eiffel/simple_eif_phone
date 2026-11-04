@@ -104,6 +104,9 @@ feature {NONE} -- Window and frame
 	c_frame_fill (a_x, a_y, a_w, a_h, a_rgb: INTEGER)
 		external "C inline use %"sephone.h%"" alias "sephone_frame_fill((int)$a_x, (int)$a_y, (int)$a_w, (int)$a_h, (int)$a_rgb);" end
 
+	c_frame_present_argb_at (a_pixels: POINTER; a_width, a_height, a_stride, a_x, a_y: INTEGER)
+		external "C inline use %"sephone.h%"" alias "sephone_frame_present_argb_at((const void *)$a_pixels, (int)$a_width, (int)$a_height, (int)$a_stride, (int)$a_x, (int)$a_y);" end
+
 	c_frame_present_argb (a_pixels: POINTER; a_width, a_height, a_stride: INTEGER)
 		external "C inline use %"sephone.h%"" alias "sephone_frame_present_argb((const void *)$a_pixels, (int)$a_width, (int)$a_height, (int)$a_stride);" end
 

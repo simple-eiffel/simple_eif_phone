@@ -1,0 +1,19 @@
+[app]
+id = "io.github.ljr1981.eifphone.widgets"
+label = "Eiffel Widgets"
+version_code = 1
+version_name = "0.1.0"
+
+[eiffel]
+ecf = "widgets_demo.ecf"
+target = "widgets_demo"
+
+[android]
+abis = ["arm64-v8a", "x86_64"]
+min_sdk = 26
+target_sdk = 36
+java_helper = false
+
+[native]
+include = ["$EIFPHONE_NATIVE/out/$ABI/sysroot/include/cairo", "$SIMPLE_EIFFEL/simple_cairo/Clib"]
+libraries = ["$EIFPHONE_NATIVE/out/$ABI/sysroot/lib/libcairo.a", "$EIFPHONE_NATIVE/out/$ABI/sysroot/lib/libpixman-1.a", "$EIFPHONE_NATIVE/out/$ABI/sysroot/lib/libfreetype.a", "$EIFPHONE_NATIVE/out/$ABI/sysroot/lib/libpng16.a", "$EIFPHONE_NATIVE/out/$ABI/sysroot/lib/libz.a"]

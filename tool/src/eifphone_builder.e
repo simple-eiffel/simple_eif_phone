@@ -654,6 +654,8 @@ feature {NONE} -- Stage support
 				+ {STRING_32} " -I" + runner.quoted (tools.native_app_glue) + {STRING_32} " -I" + runner.quoted (tools.boehm_gc_include)
 				+ {STRING_32} " -include " + runner.quoted (runtime_dir.extended ("c").extended ("sephone_fastjmp.h"))
 			Result.append ({STRING_32} " -I" + runner.quoted (tools.gec_runtime_include))
+				-- The ISE time library keeps its C header beside its classes.
+			Result.append ({STRING_32} " -I" + runner.quoted (tools.ise_library.extended ("library").extended ("time").extended ("spec").extended ("include")))
 			across project.native_abi_includes as ic loop
 				Result.append ({STRING_32} " -I" + runner.quoted (project.for_abi (ic, a_abi)))
 			end
