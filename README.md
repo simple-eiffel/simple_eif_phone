@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 **0.4.0: early, working, not yet widely used.**
 
-- 101 tool tests, 57 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
+- 101 tool tests, 59 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
 - Android's own controls, and `simple_widgets` drawn by cairo, have run on the emulator only so far.
 - On a real ARM phone, the touch pad demo took five fingers at once, and a full screen went up in 6.5 ms at worst.
 - The tool runs on Windows. Apps run on Android 8.0 or later, on ARM64 and x86_64.
@@ -53,7 +53,7 @@ For complete documentation, see [the docs site](https://simple-eiffel.github.io/
 - SQLite on the phone through `simple_sql`, full-text search included
 - Read-aloud and the file picker, Hebrew included, through a small fixed Java helper
 - Android's own controls from Eiffel: buttons, text boxes with the phone's keyboard, lists of any length, dialogs and pickers, and any other control by name
-- `simple_cairo` and `simple_widgets` on the phone, unchanged, through the `android_shell` cluster
+- `simple_cairo` and `simple_widgets` on the phone, unchanged, through the `android_shell` cluster, including its 7GUIs benchmark
 - Contracts throughout, with a fast build for live drawing and a checked build for development
 - On-device test runner, and clear errors that name the failed stage
 

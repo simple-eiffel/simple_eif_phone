@@ -40,7 +40,8 @@
                 <tr><th></th><th>Android's own controls</th><th><code>simple_widgets</code></th></tr>
                 <tr><td>Cluster</td><td><code>src/controls</code></td><td><code>android_shell</code></td></tr>
                 <tr><td>Drawn by</td><td>Android</td><td>cairo</td></tr>
-                <tr><td>Keyboard, Hebrew, copy and paste</td><td>Android's, ready to use</td><td>Not yet</td></tr>
+                <tr><td>Keyboard</td><td>Android's, ready to use</td><td>The phone's keyboard types into drawn text boxes</td></tr>
+                <tr><td>Hebrew, copy and paste</td><td>Android's, ready to use</td><td>Not yet</td></tr>
                 <tr><td>Same code on a PC</td><td>No</td><td>Yes</td></tr>
                 <tr><td>In <code>eifphone.toml</code></td><td><code>controls = true</code></td><td><code>[native]</code> cairo libraries</td></tr>
                 </table>
@@ -62,6 +63,15 @@ phone.run_controls</code></pre>
                 <h2><code>simple_widgets</code> on the phone</h2>
                 <p>Build cairo once with <code>runtime/native/build_cairo.sh</code>. In your ECF, use <code>android_shell/simple_widgets_android.ecf</code> in place of <code>simple_widgets.ecf</code>. See <code>examples/widgets_demo</code>.</p>
                 <p>A tap becomes a press and a release. A finger that moves at once scrolls. A finger that holds still first, then moves, drags. Set the size with <code>theme.set_text_scale (window.density)</code>.</p>
+                <p>For typing, put <code>java_helper = true</code> in <code>eifphone.toml</code> and give the window a query. A tap on a text box then brings up the phone's keyboard, and a tap anywhere else puts it away:</p>
+                <pre><code>window.set_wants_typing (agent takes_typing_at)
+
+takes_typing_at (a_x, a_y: INTEGER): BOOLEAN
+	do
+		Result := attached window.root as al_root
+			and then attached al_root.widget_at (a_x, a_y) as al_widget
+			and then al_widget.takes_typing
+	end</code></pre>
                 <p>After <code>simple_shell</code> changes, run <code>runtime/native/gen_android_shell.py</code> to bring its stubs up to date.</p>
             </section>
             <section id="setup">
@@ -194,7 +204,7 @@ defines = [&quot;MYLIB_FAST&quot;, &quot;MYLIB_LEVEL=2&quot;]</code></pre>
 <li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
 <li><strong>Android's own controls and <code>simple_widgets</code> have only run on the emulator.</strong> Nothing in 0.4.0 has run on a real phone yet. ARM builds are made but have not been started.</li>
 <li><strong>Typing Hebrew from a keyboard has not been tried.</strong> Hebrew and emoji do go through a real text box and come back intact, but the emulator's test input is limited to plain letters.</li>
-<li><strong><code>simple_widgets</code> on the phone is young.</strong> Text uses cairo's plain built-in font, so Hebrew does not work there yet. Its text box takes no typing from the on-screen keyboard. <code>android_shell</code> has no printer, spell checker or screen reader. Android's own controls have none of these gaps.</li>
+<li><strong><code>simple_widgets</code> on the phone is young.</strong> Text uses cairo's plain built-in font, so Hebrew does not work there yet. The keyboard can cover a text box low on the screen. <code>android_shell</code> has no printer, spell checker or screen reader. Android's own controls have none of these gaps.</li>
 <li><strong>The general route reaches public methods that take nothing, a whole number, a true/false or a text.</strong> A method with other arguments needs its own class.</li>
 <li><strong>Read-aloud has only run on the emulator, which has no sound.</strong> The engine ran each sentence to its end, but nobody has heard it yet.</li>
 <li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>

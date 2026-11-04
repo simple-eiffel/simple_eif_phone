@@ -53,6 +53,7 @@ sleep 4
 check "app starts and shows controls" "shown"
 check "a wrong method is reported" "failure noSuchMethod"
 check "a wrong class is reported" "failure android.widget.NoSuchWidget"
+check "a missing picture is reported" "failure not_there.png"
 seen "real Android button" 'class="android.widget.Button"'
 seen "real Android text box" 'class="android.widget.EditText"'
 seen "real Android rating bar (general route)" 'class="android.widget.RatingBar"'
@@ -89,6 +90,9 @@ c=$(centre 'class="android.widget.RatingBar"')
 $ADB shell input tap $c; check "rating bar listener (general route)" "stars onRatingChanged"
 check "asking Android for a value (general route)" "rating "
 shot form_end
+seen "a picture from the app's assets" 'class="android.widget.ImageView"'
+tap "Open a menu"; sleep 1; shot menu
+tap "Second item"; check "pop-up menu" "menu 2"
 tap "Order storm"; check "40,000 orders sent" "storm sent"
 sleep 6
 scroll_to "NO-SUCH-TEXT"

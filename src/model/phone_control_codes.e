@@ -25,6 +25,7 @@ feature -- Kinds of control
 	Control_choice: INTEGER = 13
 	Control_radio_group: INTEGER = 14
 	Control_any: INTEGER = 15
+	Control_image: INTEGER = 16
 
 feature -- Orders
 
@@ -61,6 +62,8 @@ feature -- Orders
 	Op_listen: INTEGER = 31
 	Op_discard: INTEGER = 32
 	Op_back: INTEGER = 33
+	Op_image: INTEGER = 34
+	Op_menu: INTEGER = 35
 
 feature -- Arguments of the general route
 

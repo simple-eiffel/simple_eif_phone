@@ -24,6 +24,7 @@ import android.widget.BaseAdapter;
 import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.FrameLayout;
+import android.widget.PopupMenu;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -156,6 +157,21 @@ public class EifPhoneControlsActivity extends EifPhoneActivity {
 		}
 		builder.setOnCancelListener(d -> send(ANSWERED, id, 0, 0, null));
 		builder.show();
+	}
+
+	/** Answers with the item's number from 1; 0 if the user backs out. */
+	public void sephoneMenu(View anchor, int id, String items) {
+		PopupMenu menu = new PopupMenu(this, anchor);
+		String[] words = items.split("\u001F");
+		for (int i = 0; i < words.length; i++) {
+			menu.getMenu().add(0, i + 1, i, words[i]);
+		}
+		menu.setOnMenuItemClickListener(item -> {
+			send(ANSWERED, id, item.getItemId(), 0, null);
+			return true;
+		});
+		menu.setOnDismissListener(m -> send(ANSWERED, id, 0, 0, null));
+		menu.show();
 	}
 
 	public void sephoneDate(int id, int year, int month, int day) {

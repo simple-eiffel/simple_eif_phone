@@ -132,6 +132,7 @@
 #define SEPHONE_CONTROL_CHOICE 13
 #define SEPHONE_CONTROL_RADIO_GROUP 14
 #define SEPHONE_CONTROL_ANY 15
+#define SEPHONE_CONTROL_IMAGE 16
 
 /* Orders (mirror of PHONE_CONTROL_CODES). */
 #define SEPHONE_OP_NEW 1
@@ -167,6 +168,8 @@
 #define SEPHONE_OP_LISTEN 31
 #define SEPHONE_OP_DISCARD 32
 #define SEPHONE_OP_BACK 33
+#define SEPHONE_OP_IMAGE 34
+#define SEPHONE_OP_MENU 35
 
 /* Back-key policy. */
 #define SEPHONE_BACK_SYSTEM 0  /* Android also handles Back (finishes the app) */

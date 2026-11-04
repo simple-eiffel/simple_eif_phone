@@ -55,6 +55,8 @@
 <li><a href="#phone_radio_group">PHONE_RADIO_GROUP</a></li>
 <li><a href="#phone_list">PHONE_LIST</a></li>
 <li><a href="#phone_canvas">PHONE_CANVAS</a></li>
+<li><a href="#phone_image">PHONE_IMAGE</a></li>
+<li><a href="#phone_keyboard">PHONE_KEYBOARD</a></li>
 <li><a href="#phone_painter">PHONE_PAINTER</a></li>
 <li><a href="#phone_screen">PHONE_SCREEN</a></li>
 <li><a href="#phone_metrics">PHONE_METRICS</a></li>
@@ -156,6 +158,8 @@ no_open_frame: not screen.in_frame</div>
 </div>
 <div class="feature"><h4>files: PHONE_FILES</h4>
 </div>
+<div class="feature"><h4>keyboard: PHONE_KEYBOARD</h4>
+</div>
 <div class="feature"><h4>controls: PHONE_CONTROLS</h4>
 </div>
 <h3>Behavior</h3>
@@ -217,6 +221,11 @@ services_consistent: screen.has_window = lifecycle.has_window</div>
 <div class="feature"><h4>confirm (a_title, a_message, a_yes, a_no: READABLE_STRING_32; a_answer: PROCEDURE [TUPLE [BOOLEAN]])</h4>
 <p>Ask a question. `a_answer&#x27; gets True for `a_yes&#x27;; False for `a_no&#x27; or when the user backs out. An empty `a_no&#x27; leaves one button.</p>
 <p><strong>Requires</strong></p><div class="clause">yes_given: not a_yes.is_empty</div>
+</div>
+<div class="feature"><h4>show_menu (a_anchor: PHONE_CONTROL; a_items: ARRAY [READABLE_STRING_32]; a_answer: PROCEDURE [TUPLE [INTEGER]])</h4>
+<p>A pop-up menu beside `a_anchor&#x27;. `a_answer&#x27; gets the chosen item&#x27;s number from 1, or 0 when the user backs out.</p>
+<p><strong>Requires</strong></p><div class="clause">mine: a_anchor.controls = Current
+items_given: not a_items.is_empty</div>
 </div>
 <div class="feature"><h4>pick_date (a_year, a_month, a_day: INTEGER; a_answer: PROCEDURE [TUPLE [READABLE_STRING_32]])</h4>
 <p>Android&#x27;s date picker, opened at the date given. `a_answer&#x27; gets &quot;year-month-day&quot;, or empty text when the user backs out.</p>
@@ -607,6 +616,39 @@ selection_in_range: selected_index &gt;= 0 and selected_index &lt;= row_count</d
 <p>Draw now, if the surface is there.</p>
 </div>
 <h3>Invariant</h3><div class="clause">size_non_negative: width &gt;= 0 and height &gt;= 0</div>
+</section>
+<section id="phone_image"><h2>PHONE_IMAGE</h2><p>A picture packed in the app&#x27;s assets folder. Android&#x27;s ImageView.</p>
+<h3>Access</h3>
+<div class="feature"><h4>asset: READABLE_STRING_32</h4>
+</div>
+<h3>Element change</h3>
+<div class="feature"><h4>set_asset (a_asset: READABLE_STRING_32)</h4>
+<p><strong>Requires</strong></p><div class="clause">asset_given: not a_asset.is_empty</div>
+<p><strong>Ensures</strong></p><div class="clause">set: asset.same_string (a_asset)</div>
+</div>
+</section>
+<section id="phone_keyboard"><h2>PHONE_KEYBOARD</h2><p>The phone&#x27;s keyboard, for screens that draw their own text boxes. Android&#x27;s own text box brings the keyboard by itself, and has no need of this. Needs `java_helper = true&#x27; in eifphone.toml. What the user types arrives as Kind_keyboard_text, Kind_keyboard_backspace and Kind_keyboard_enter events.</p>
+<h3>Status</h3>
+<div class="feature"><h4>is_shown: BOOLEAN</h4>
+<p>Has the keyboard been asked for, and not put away?</p>
+</div>
+<div class="feature"><h4>is_available: BOOLEAN</h4>
+<p>Does this app carry the Java helper?</p>
+</div>
+<h3>Commands</h3>
+<div class="feature"><h4>show</h4>
+<p>Bring up the keyboard.</p>
+<p><strong>Requires</strong></p><div class="clause">available: is_available</div>
+<p><strong>Ensures</strong></p><div class="clause">shown: is_shown</div>
+</div>
+<div class="feature"><h4>hide</h4>
+<p>Put the keyboard away.</p>
+<p><strong>Requires</strong></p><div class="clause">available: is_available</div>
+<p><strong>Ensures</strong></p><div class="clause">hidden: not is_shown</div>
+</div>
+<div class="feature"><h4>apply (a_event: PHONE_EVENT)</h4>
+<p>Take in `a_event&#x27;. The user can put the keyboard away too.</p>
+</div>
 </section>
 <section id="phone_painter"><h2>PHONE_PAINTER</h2><p>Drawing on a PHONE_CANVAS, through Android&#x27;s own Canvas: smooth lines, and text in any script. Measures are density-independent pixels. Colors are 0xRRGGBB. A canvas hands this to its `on_paint&#x27; agent, between frames only.</p>
 <h3>Status</h3>
@@ -1046,6 +1088,14 @@ time_non_negative: time_ms &gt;= 0</div>
 </div>
 <div class="feature"><h4>Kind_file_failed: INTEGER = 45</h4>
 </div>
+<div class="feature"><h4>Kind_keyboard_text: INTEGER = 46</h4>
+</div>
+<div class="feature"><h4>Kind_keyboard_backspace: INTEGER = 47</h4>
+</div>
+<div class="feature"><h4>Kind_keyboard_enter: INTEGER = 48</h4>
+</div>
+<div class="feature"><h4>Kind_keyboard_closed: INTEGER = 49</h4>
+</div>
 <h3>Codes: Android&#x27;s controls</h3>
 <div class="feature"><h4>Kind_control_clicked: INTEGER = 50</h4>
 </div>
@@ -1097,6 +1147,9 @@ families_disjoint: (is_lifecycle_kind (a_k).to_integer + is_touch_kind (a_k).to_
 </div>
 <div class="feature"><h4>is_file_kind (a_k: INTEGER): BOOLEAN</h4>
 <p>Is `a_k&#x27; a file picker result?</p>
+</div>
+<div class="feature"><h4>is_keyboard_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; from the phone&#x27;s keyboard?</p>
 </div>
 <div class="feature"><h4>is_service_kind (a_k: INTEGER): BOOLEAN</h4>
 <p>Is `a_k&#x27; a result from a Java service?</p>

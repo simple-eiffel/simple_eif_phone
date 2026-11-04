@@ -90,6 +90,8 @@ feature {NONE} -- Test Runners
 			run_test (agent l_controls.test_repaint_requests_collapse, "test_repaint_requests_collapse")
 			run_test (agent l_controls.test_confirm_answers_once, "test_confirm_answers_once")
 			run_test (agent l_controls.test_general_route, "test_general_route")
+			run_test (agent l_controls.test_image_names_its_asset, "test_image_names_its_asset")
+			run_test (agent l_controls.test_menu_answers_once, "test_menu_answers_once")
 			run_test (agent l_controls.test_discard, "test_discard")
 			run_test (agent l_controls.test_back, "test_back")
 			create l_consumer

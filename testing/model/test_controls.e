@@ -326,6 +326,46 @@ feature -- Questions and the general route
 			assert ("failure kept", attached l_any.last_failure as al_f and then al_f.has_substring ("setNope"))
 		end
 
+feature -- Pictures and menus
+
+	test_image_names_its_asset
+		local
+			l_port: TEST_CONTROL_PORT
+			l_controls: PHONE_CONTROLS
+			l_image: PHONE_IMAGE
+		do
+			create l_port.make
+			create l_controls.make (l_port)
+			create l_image.make (l_controls, {STRING_32} "logo.png")
+			assert ("kind", attached l_port.last_of (Op_new) as al_o and then al_o.first = Control_image)
+			assert ("asset sent", attached l_port.last_of (Op_image) as al_o and then al_o.text.same_string ({STRING_32} "logo.png"))
+			l_controls.dispatch (event (Kind_control_failed, l_image.id, 0, "logo.png"))
+			assert ("a missing file is reported", attached l_image.last_failure)
+		end
+
+	test_menu_answers_once
+			-- Android reports a choice, and then that the menu closed: only the first counts.
+		local
+			l_port: TEST_CONTROL_PORT
+			l_controls: PHONE_CONTROLS
+			l_anchor: PHONE_LABEL
+			l_id: INTEGER
+		do
+			create l_port.make
+			create l_controls.make (l_port)
+			create l_anchor.make (l_controls, {STRING_32} "x")
+			l_controls.show_menu (l_anchor, <<{STRING_32} "One", {STRING_32} "Two">>, agent note_index)
+			assert ("items sent", attached l_port.last_of (Op_menu) as al_o and then al_o.text.occurrences (Field_mark) = 1)
+			if attached l_port.last_of (Op_menu) as al_o then
+				l_id := al_o.first
+			end
+			last_index := -1
+			l_controls.dispatch (event (Kind_control_answered, l_id, 2, ""))
+			assert ("chosen", last_index = 2)
+			l_controls.dispatch (event (Kind_control_answered, l_id, 0, ""))
+			assert ("closing changes nothing", last_index = 2)
+		end
+
 feature -- Finishing with controls
 
 	test_discard

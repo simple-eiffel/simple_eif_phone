@@ -195,6 +195,7 @@ static const char *class_of_kind(int kind)
 	case SEPHONE_CONTROL_SLIDER: return "android/widget/SeekBar";
 	case SEPHONE_CONTROL_CHOICE: return "android/widget/Spinner";
 	case SEPHONE_CONTROL_RADIO_GROUP: return "android/widget/RadioGroup";
+	case SEPHONE_CONTROL_IMAGE: return "android/widget/ImageView";
 	default: return NULL;
 	}
 }
@@ -390,6 +391,27 @@ static void show_toast(JNIEnv *env, const char *text)
 	if (toast) call_void(env, toast, "show", "()V");
 }
 
+/* A picture packed in the app's assets. A missing one is reported, and shows nothing. */
+static void show_image(JNIEnv *env, int id, sephone_view *v, const char *name)
+{
+	jobject assets = call_object(env, sephone_activity(), "getAssets", "()Landroid/content/res/AssetManager;");
+	jobject stream = assets ? call_object(env, assets, "open", "(Ljava/lang/String;)Ljava/io/InputStream;", java_text(env, name)) : NULL;
+	jobject bitmap = NULL;
+	if (stream) {
+		jclass factory = (*env)->FindClass(env, "android/graphics/BitmapFactory");
+		jmethodID decode = (*env)->GetStaticMethodID(env, factory, "decodeStream", "(Ljava/io/InputStream;)Landroid/graphics/Bitmap;");
+		bitmap = (*env)->CallStaticObjectMethod(env, factory, decode, stream);
+		failed(env, "decodeStream");
+		call_void(env, stream, "close", "()V");
+	}
+	if (bitmap) {
+		call_void(env, v->view, "setAdjustViewBounds", "(Z)V", (jboolean)JNI_TRUE);
+		call_void(env, v->view, "setImageBitmap", "(Landroid/graphics/Bitmap;)V", bitmap);
+	} else {
+		sephone_mail(SEPHONE_CONTROL_FAILED, 0, id, 0, 0, strdup(name));
+	}
+}
+
 /* Android forgets the control. Eiffel has already taken it out of its parent. */
 static void discard_view(JNIEnv *env, int id, sephone_view *v)
 {
@@ -538,6 +560,14 @@ static void carry_out(JNIEnv *env, sephone_order *o)
 	case SEPHONE_OP_ASK:
 		call_void(env, sephone_activity(), "sephoneAsk", "(Landroid/view/View;IILjava/lang/String;)V",
 			v->view, (jint)o->id, (jint)o->a, java_text(env, text));
+		break;
+	case SEPHONE_OP_IMAGE:
+		show_image(env, o->id, v, text);
+		break;
+	case SEPHONE_OP_MENU:
+		/* id = the anchor; a = the id the answer comes under */
+		call_void(env, sephone_activity(), "sephoneMenu", "(Landroid/view/View;ILjava/lang/String;)V",
+			v->view, (jint)o->a, java_text(env, text));
 		break;
 	case SEPHONE_OP_LISTEN:
 		call_void(env, sephone_activity(), "sephoneListen", "(Landroid/view/View;ILjava/lang/String;)V",

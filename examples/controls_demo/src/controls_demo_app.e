@@ -54,6 +54,7 @@ feature {NONE} -- Screens
 			l_choice: PHONE_CHOICE
 			l_radio: PHONE_RADIO_GROUP
 			l_stars_row: PHONE_ROW
+			l_menu: PHONE_BUTTON
 		do
 			create l_title.make (controls, {STRING_32} "Android controls from Eiffel")
 			l_title.set_style (22, True)
@@ -107,6 +108,11 @@ feature {NONE} -- Screens
 			l_stars_row.extend (stars)   -- a RatingBar stretched to the full width grows extra stars
 			l_body.extend (l_stars_row)
 			storm_area := l_body
+			create l_menu.make (controls, {STRING_32} "Open a menu", agent on_menu)
+			menu_button := l_menu
+			l_body.extend (l_menu)
+			l_body.extend (create {PHONE_IMAGE}.make (controls, {STRING_32} "eiffel.png"))
+			l_body.extend (missing_image)
 			l_body.extend (create {PHONE_BUTTON}.make (controls, {STRING_32} "Order storm", agent on_storm))
 			create l_scroll.make (controls)
 			l_scroll.set_child (l_body)
@@ -275,6 +281,25 @@ feature {NONE} -- Reactions
 			say ("toast")
 		end
 
+	missing_image: PHONE_IMAGE
+			-- A picture that is not there, to show how that is reported.
+		do
+			create Result.make (controls, {STRING_32} "not_there.png")
+			Result.set_on_failure (agent on_failure)
+		end
+
+	on_menu
+		do
+			if attached menu_button as al_button then
+				controls.show_menu (al_button, <<{STRING_32} "First item", {STRING_32} "Second item", {STRING_32} "Third item">>, agent on_menu_item)
+			end
+		end
+
+	on_menu_item (a_item: INTEGER)
+		do
+			say ("menu " + a_item.out)
+		end
+
 	on_ask
 		do
 			controls.confirm ({STRING_32} "A question", {STRING_32} "Does this come from Eiffel?",
@@ -386,6 +411,8 @@ feature {NONE} -- Implementation
 	phone: SIMPLE_EIF_PHONE
 	controls: PHONE_CONTROLS
 	box: PHONE_TEXT_BOX
+	menu_button: detachable PHONE_BUTTON
+
 	storm_area: PHONE_COLUMN
 		attribute
 			create Result.make (controls)

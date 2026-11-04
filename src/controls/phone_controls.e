@@ -106,6 +106,28 @@ feature -- Commands
 			port.send (Op_dialog, l_id, 0, 0, l_text)
 		end
 
+	show_menu (a_anchor: PHONE_CONTROL; a_items: ARRAY [READABLE_STRING_32]; a_answer: PROCEDURE [TUPLE [INTEGER]])
+			-- A pop-up menu beside `a_anchor'. `a_answer' gets the chosen item's number
+			-- from 1, or 0 when the user backs out.
+		require
+			mine: a_anchor.controls = Current
+			items_given: not a_items.is_empty
+		local
+			l_text: STRING_32
+			l_id: INTEGER
+		do
+			l_id := new_id
+			answers.force (agent answer_index (a_answer, ?), l_id)
+			create l_text.make (32)
+			across a_items as ic loop
+				if not l_text.is_empty then
+					l_text.append_character (Field_mark)
+				end
+				l_text.append (ic)
+			end
+			port.send (Op_menu, a_anchor.id, l_id, 0, l_text)
+		end
+
 	pick_date (a_year, a_month, a_day: INTEGER; a_answer: PROCEDURE [TUPLE [READABLE_STRING_32]])
 			-- Android's date picker, opened at the date given. `a_answer' gets
 			-- "year-month-day", or empty text when the user backs out.
@@ -251,6 +273,11 @@ feature {NONE} -- Implementation
 	answer_confirm (a_answer: PROCEDURE [TUPLE [BOOLEAN]]; a_event: PHONE_EVENT)
 		do
 			a_answer.call ([a_event.x = 1])
+		end
+
+	answer_index (a_answer: PROCEDURE [TUPLE [INTEGER]]; a_event: PHONE_EVENT)
+		do
+			a_answer.call ([a_event.x])
 		end
 
 	answer_text (a_answer: PROCEDURE [TUPLE [READABLE_STRING_32]]; a_event: PHONE_EVENT)
