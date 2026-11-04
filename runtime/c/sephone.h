@@ -48,6 +48,13 @@
  * DELIVERY COUNT (RB-7): sephone_take increments sephone_delivery_count; a
  * timed-out wait takes nothing and leaves it unchanged.
  *
+ * JAVA SERVICES: read-aloud and the file picker live in EifPhoneActivity.
+ * Java answers on its own threads, so its answers go into a mailbox under
+ * s_mail_lock, and ALooper_wake rouses sephone_wait. sephone_wait moves them
+ * into the event queue on the android_main thread. This is the one place other
+ * threads enter the glue, and they touch nothing but the mailbox.
+ * Text crosses as UTF-8 bytes.
+ *
  * Event codes must match PHONE_EVENT_KIND.
  */
 #ifndef SEPHONE_H
@@ -71,6 +78,12 @@
 #define SEPHONE_CONFIGURATION_CHANGED 12
 #define SEPHONE_LOW_MEMORY 13
 #define SEPHONE_CONTENT_RECT_CHANGED 14
+#define SEPHONE_SPEECH_READY 40
+#define SEPHONE_SPEECH_FAILED 41
+#define SEPHONE_SPEECH_DONE 42
+#define SEPHONE_FILE_PICKED 43
+#define SEPHONE_FILE_CANCELLED 44
+#define SEPHONE_FILE_FAILED 45
 #define SEPHONE_TOUCH_DOWN 20
 #define SEPHONE_TOUCH_MOVE 21
 #define SEPHONE_TOUCH_UP 22
@@ -95,12 +108,18 @@ int  sephone_cur_id(void);
 int  sephone_cur_x(void);
 int  sephone_cur_y(void);
 int  sephone_cur_code(void);
+const char *sephone_cur_text(void); /* service events; NULL otherwise. Valid until the next take. */
 int  sephone_dropped(void);
 int  sephone_delivery_count(void);  /* events taken so far (RB-7) */
 void sephone_test_push(int kind, int id, int x, int y, int code); /* TEST ONLY: queue an event directly */
 int  sephone_test_capacity(void);   /* TEST ONLY: current queue slots */
 
 /* Behavior. */
+int  sephone_helper_present(void);  /* 1 if this app carries EifPhoneActivity */
+void sephone_speech_start(void);
+void sephone_speak(const char *text, const char *language);
+void sephone_speech_stop(void);
+void sephone_pick_file(const char *type);
 void sephone_set_back_policy(int policy);
 int  sephone_back_policy(void);     /* RB-16 */
 void sephone_keep_screen_on(int on);

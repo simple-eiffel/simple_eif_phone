@@ -127,6 +127,29 @@ if attached phone.assets.last_asset as al_data then
 end</code></pre>
             </section>
             <section>
+                <h2>Read text aloud</h2>
+                <pre><code>phone.speech.start                       -- once, when the app begins
+...
+when Kind_speech_ready then
+	phone.speech.speak (l_words, &quot;en-US&quot;)
+when Kind_speech_done then
+	-- finished, or stopped: see phone.last_event.service_code
+when Kind_speech_failed then
+	-- phone.speech.last_failure says why</code></pre>
+                <p>Use <code>"he-IL"</code> for Hebrew, if the phone's engine has it. Keep each call under 4,000 characters. <code>examples/read_aloud</code> shows the whole thing.</p>
+            </section>
+            <section>
+                <h2>Let the person choose a file</h2>
+                <pre><code>phone.files.pick (&quot;text/*&quot;)
+...
+when Kind_file_picked then
+	if attached phone.files.last_path as al_path then
+		open_it (al_path)                -- a plain file in the app&#x27;s cache
+	end
+when Kind_file_cancelled then
+	-- nothing chosen</code></pre>
+            </section>
+            <section>
                 <h2>Keep data in SQLite</h2>
                 <p><code>simple_sql</code> runs on the phone, full-text search included. Add it to your ECF, then add this to <code>eifphone.toml</code>:</p>
                 <pre><code>[native]

@@ -32,7 +32,15 @@ extern int GE_main(int argc, char **argv);
 
 typedef struct {
 	int kind, time, id, x, y, code;
+	char *text;   /* service events only; owned by the event */
 } sephone_event;
+
+/* What Java has sent and the Eiffel thread has not yet taken. See sephone.h. */
+typedef struct sephone_note {
+	int kind, code;
+	char *text;
+	struct sephone_note *next;
+} sephone_note;
 
 static struct android_app *s_app = NULL;
 static sephone_event *s_queue = NULL;
@@ -46,6 +54,10 @@ static int s_locked = 0;
 static ARect s_content;   /* snapshot of app->contentRect, copied under app->mutex */
 static int s_inset_left = 0, s_inset_top = 0, s_inset_right = 0, s_inset_bottom = 0;
 static JNIEnv *s_env = NULL;   /* this thread's JNI handle; attached in android_main */
+static pthread_mutex_t s_mail_lock = PTHREAD_MUTEX_INITIALIZER;
+static sephone_note *s_mail_first = NULL, *s_mail_last = NULL;
+static int s_helper = 0;
+static jmethodID s_m_speech_start = NULL, s_m_speak = NULL, s_m_speech_stop = NULL, s_m_pick = NULL;
 
 /* ------------------------------------------------------------------ time */
 
@@ -81,11 +93,15 @@ static int sephone_grow(void)
 	return 1;
 }
 
+static char *s_push_text = NULL;   /* text for the next push; the event takes it over */
+
 static void sephone_push(int kind, int time, int id, int x, int y, int code)
 {
 	sephone_event e;
 	int i;
 	e.kind = kind; e.time = time; e.id = id; e.x = x; e.y = y; e.code = code;
+	e.text = s_push_text;
+	s_push_text = NULL;
 	if (s_count == s_cap) {
 		/* 1. Coalesce a move onto the trailing run of queued moves of the same pointer. */
 		if (kind == SEPHONE_TOUCH_MOVE) {
@@ -242,9 +258,27 @@ void sephone_handle_claim(void) { s_handle = 1; }
 
 /* --------------------------------------------------------------- events */
 
+/* Move Java's answers into the queue. Runs on the android_main thread. */
+static void sephone_drain_mail(void)
+{
+	sephone_note *n;
+	pthread_mutex_lock(&s_mail_lock);
+	n = s_mail_first;
+	s_mail_first = s_mail_last = NULL;
+	pthread_mutex_unlock(&s_mail_lock);
+	while (n) {
+		sephone_note *next = n->next;
+		s_push_text = n->text;
+		sephone_push(n->kind, sephone_ms_from_ns(sephone_now_ns()), -1, 0, 0, n->code);
+		free(n);
+		n = next;
+	}
+}
+
 int sephone_wait(int timeout_ms)
 {
 	int64_t deadline = timeout_ms < 0 ? -1 : sephone_now_ns() + (int64_t)timeout_ms * 1000000LL;
+	sephone_drain_mail();
 	while (s_count == 0) {   /* G-1: poll Android only while the queue is empty */
 		struct android_poll_source *src = NULL;
 		int events = 0, wait_ms = -1, r;
@@ -255,6 +289,7 @@ int sephone_wait(int timeout_ms)
 		}
 		r = ALooper_pollOnce(wait_ms, NULL, &events, (void **)&src);
 		if (r >= 0 && src) src->process(s_app, src);   /* one command per call */
+		sephone_drain_mail();
 	}
 	return 1;
 }
@@ -262,6 +297,7 @@ int sephone_wait(int timeout_ms)
 void sephone_take(void)
 {
 	if (s_count == 0) return;
+	free(s_cur.text);
 	s_cur = *sephone_slot(0);
 	s_head = (s_head + 1) % s_cap;
 	s_count--;
@@ -274,8 +310,115 @@ int sephone_cur_id(void) { return s_cur.id; }
 int sephone_cur_x(void) { return s_cur.x; }
 int sephone_cur_y(void) { return s_cur.y; }
 int sephone_cur_code(void) { return s_cur.code; }
+const char *sephone_cur_text(void) { return s_cur.text; }
 int sephone_dropped(void) { return s_dropped; }
 int sephone_delivery_count(void) { return s_delivered; }
+
+/* ------------------------------------------------------- Java services */
+
+/* Registered on EifPhoneActivity. Runs on Java's threads: mailbox only. */
+static void JNICALL sephone_java_event(JNIEnv *env, jclass cls, jint kind, jint code, jbyteArray text)
+{
+	sephone_note *n = (sephone_note *)calloc(1, sizeof(sephone_note));
+	jsize count = text ? (*env)->GetArrayLength(env, text) : 0;
+	(void)cls;
+	if (!n) return;
+	n->kind = (int)kind;
+	n->code = (int)code;
+	if (count > 0) {
+		n->text = (char *)malloc((size_t)count + 1);
+		if (n->text) {
+			(*env)->GetByteArrayRegion(env, text, 0, count, (jbyte *)n->text);
+			n->text[count] = 0;
+		}
+	}
+	pthread_mutex_lock(&s_mail_lock);
+	if (s_mail_last) s_mail_last->next = n;
+	else s_mail_first = n;
+	s_mail_last = n;
+	pthread_mutex_unlock(&s_mail_lock);
+	if (s_app) ALooper_wake(s_app->looper);
+}
+
+static jmethodID sephone_helper_method(JNIEnv *env, jclass cls, const char *name, const char *sig)
+{
+	jmethodID m = (*env)->GetMethodID(env, cls, name, sig);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionClear(env);
+		m = NULL;
+	}
+	return m;
+}
+
+/* Find the helper, if this app has one. A plain NativeActivity has none. */
+static void sephone_java_setup(void)
+{
+	static JNINativeMethod native = { "sephoneEvent", "(II[B)V", (void *)sephone_java_event };
+	JNIEnv *env = s_env;
+	jclass cls;
+	if (!env) return;
+	cls = (*env)->GetObjectClass(env, s_app->activity->clazz);
+	s_m_speech_start = sephone_helper_method(env, cls, "sephoneSpeechStart", "()V");
+	s_m_speak = sephone_helper_method(env, cls, "sephoneSpeak", "([B[B)V");
+	s_m_speech_stop = sephone_helper_method(env, cls, "sephoneSpeechStop", "()V");
+	s_m_pick = sephone_helper_method(env, cls, "sephonePickFile", "([B)V");
+	if (s_m_speech_start && s_m_speak && s_m_speech_stop && s_m_pick) {
+		if ((*env)->RegisterNatives(env, cls, &native, 1) == 0) s_helper = 1;
+		else (*env)->ExceptionClear(env);
+	}
+	(*env)->DeleteLocalRef(env, cls);
+}
+
+static jbyteArray sephone_bytes(JNIEnv *env, const char *text)
+{
+	jsize count = (jsize)strlen(text);
+	jbyteArray result = (*env)->NewByteArray(env, count);
+	if (result) (*env)->SetByteArrayRegion(env, result, 0, count, (const jbyte *)text);
+	return result;
+}
+
+static void sephone_clear_exception(JNIEnv *env)
+{
+	if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+}
+
+int sephone_helper_present(void) { return s_helper; }
+
+void sephone_speech_start(void)
+{
+	if (!s_helper) return;
+	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_speech_start);
+	sephone_clear_exception(s_env);
+}
+
+void sephone_speak(const char *text, const char *language)
+{
+	jbyteArray a, b;
+	if (!s_helper) return;
+	a = sephone_bytes(s_env, text);
+	b = sephone_bytes(s_env, language);
+	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_speak, a, b);
+	sephone_clear_exception(s_env);
+	(*s_env)->DeleteLocalRef(s_env, a);
+	(*s_env)->DeleteLocalRef(s_env, b);
+}
+
+void sephone_speech_stop(void)
+{
+	if (!s_helper) return;
+	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_speech_stop);
+	sephone_clear_exception(s_env);
+}
+
+void sephone_pick_file(const char *type)
+{
+	jbyteArray a;
+	if (!s_helper) return;
+	a = sephone_bytes(s_env, type);
+	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_pick, a);
+	sephone_clear_exception(s_env);
+	(*s_env)->DeleteLocalRef(s_env, a);
+}
 
 /* TEST ONLY (examples/phone_tests): exercise the overflow rule without a device driver. */
 void sephone_test_push(int kind, int id, int x, int y, int code)
@@ -539,6 +682,7 @@ void android_main(struct android_app *app)
 	app->onInputEvent = sephone_on_input;
 	sephone_redirect_output();
 	if ((*app->activity->vm)->AttachCurrentThread(app->activity->vm, &s_env, NULL) != 0) s_env = NULL;
+	sephone_java_setup();
 	__android_log_write(ANDROID_LOG_INFO, SEPHONE_TAG, "android_main: starting Eiffel");
 	GE_main(1, argv);
 	__android_log_write(ANDROID_LOG_INFO, SEPHONE_TAG, "android_main: Eiffel returned; ending the process");

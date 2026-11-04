@@ -33,6 +33,101 @@ feature -- Event kinds
 			end
 		end
 
+	test_speech_state_rules
+			-- Ready, speak, done; a language failure leaves the engine ready.
+		local
+			s: TEST_SPEECH_STATE
+		do
+			create s.make
+			assert ("idle", not s.is_ready and not s.is_starting)
+			s.begin
+			assert ("starting", s.is_starting)
+			s.apply (service (Kind_speech_ready, 0, ""))
+			assert ("ready", s.is_ready and not s.is_starting)
+			s.say
+			assert ("speaking", s.is_speaking)
+			s.apply (service (Kind_speech_done, s.Done_finished, ""))
+			assert ("quiet", not s.is_speaking and s.is_ready)
+			s.say
+			s.apply (service (Kind_speech_failed, s.Failure_language, "he-IL"))
+			assert ("language failure kept", s.last_failure = s.Failure_language)
+			assert ("still ready", s.is_ready and not s.is_speaking)
+		end
+
+	test_speech_no_engine
+			-- No engine: not ready, and the reason is kept.
+		local
+			s: TEST_SPEECH_STATE
+		do
+			create s.make
+			s.begin
+			s.apply (service (Kind_speech_failed, s.Failure_no_engine, ""))
+			assert ("not ready", not s.is_ready and not s.is_starting)
+			assert ("reason", s.last_failure = s.Failure_no_engine)
+		end
+
+	test_speech_ignores_other_events
+			-- A touch or a file result changes nothing.
+		local
+			s: TEST_SPEECH_STATE
+			e: PHONE_EVENT
+		do
+			create s.make
+			s.begin
+			create e.make_touch (Kind_touch_down, 0, 1, 2, 3)
+			s.apply (e)
+			s.apply (service (Kind_file_picked, 0, "a"))
+			assert ("still starting", s.is_starting and not s.is_ready)
+		end
+
+	test_pick_outcomes
+			-- Picked, cancelled and failed each leave one clear result.
+		local
+			p: TEST_PICK_STATE
+		do
+			create p.make
+			p.open
+			assert ("open", p.is_picking)
+			p.apply (service (Kind_file_picked, 0, "/data/x.txt"))
+			assert ("closed", not p.is_picking)
+			assert ("path", attached p.last_path as al_path and then al_path.same_string_general ("/data/x.txt"))
+			p.open
+			assert ("fresh", p.last_path = Void)
+			p.apply (service (Kind_file_cancelled, 0, ""))
+			assert ("cancelled", p.was_cancelled and p.last_path = Void)
+			p.open
+			p.apply (service (Kind_file_failed, 0, "no room"))
+			assert ("error", p.last_error.same_string_general ("no room"))
+			assert ("not cancelled", not p.was_cancelled and p.last_path = Void)
+		end
+
+	test_pick_result_after_restart
+			-- A result may arrive in a fresh process, with no pick open.
+		local
+			p: TEST_PICK_STATE
+		do
+			create p.make
+			p.apply (service (Kind_file_picked, 0, "/data/y.txt"))
+			assert ("taken", attached p.last_path)
+		end
+
+	test_service_event_family
+			-- A service event is one family, and carries text, including Hebrew.
+		local
+			e: PHONE_EVENT
+			l_word: STRING_32
+		do
+			create l_word.make_empty
+			l_word.append_code (0x5D0)
+			l_word.append_code (0x5D1)
+			create e.make_service (Kind_file_picked, 0, l_word, 5)
+			assert ("service", e.is_service and not e.is_touch and not e.is_key and not e.is_lifecycle)
+			assert ("text", e.text.same_string (l_word))
+			assert ("named", e.out_line.starts_with ("file_picked"))
+			create e.make_touch (Kind_touch_up, 1, 2, 3, 4)
+			assert ("touch has no text", e.text.is_empty and e.service_code = 0)
+		end
+
 	test_kind_names
 			-- Names match the C side's vocabulary.
 		do
@@ -236,6 +331,14 @@ feature {NONE} -- Helpers
 			id_ok: a_id >= 0
 		do
 			create Result.make_touch (a_kind, a_id, a_x, a_y, 0)
+		end
+
+feature {NONE} -- Helpers for service events
+
+	service (a_kind, a_code: INTEGER; a_text: STRING_8): PHONE_EVENT
+			-- A service event for the tests.
+		do
+			create Result.make_service (a_kind, a_code, a_text.to_string_32, 1)
 		end
 
 end

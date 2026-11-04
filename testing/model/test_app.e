@@ -34,6 +34,12 @@ feature {NONE} -- Test Runners
 		do
 			create l_lib_tests
 			run_test (agent l_lib_tests.test_kind_families_are_disjoint, "test_kind_families_are_disjoint")
+			run_test (agent l_lib_tests.test_speech_state_rules, "test_speech_state_rules")
+			run_test (agent l_lib_tests.test_speech_no_engine, "test_speech_no_engine")
+			run_test (agent l_lib_tests.test_speech_ignores_other_events, "test_speech_ignores_other_events")
+			run_test (agent l_lib_tests.test_pick_outcomes, "test_pick_outcomes")
+			run_test (agent l_lib_tests.test_pick_result_after_restart, "test_pick_result_after_restart")
+			run_test (agent l_lib_tests.test_service_event_family, "test_service_event_family")
 			run_test (agent l_lib_tests.test_kind_names, "test_kind_names")
 			run_test (agent l_lib_tests.test_event_touch_fields, "test_event_touch_fields")
 			run_test (agent l_lib_tests.test_event_key_fields, "test_event_key_fields")

@@ -18,7 +18,8 @@ create
 	make_none,
 	make_lifecycle,
 	make_touch,
-	make_key
+	make_key,
+	make_service
 
 feature {NONE} -- Initialization
 
@@ -27,6 +28,7 @@ feature {NONE} -- Initialization
 		do
 			kind := Kind_none
 			pointer_id := -1
+			text := No_text
 		ensure
 			is_none: is_none
 			no_id: pointer_id = -1
@@ -43,6 +45,7 @@ feature {NONE} -- Initialization
 			kind := a_kind
 			time_ms := a_time
 			pointer_id := -1
+			text := No_text
 		ensure
 			kind_set: kind = a_kind
 			time_set: time_ms = a_time
@@ -63,6 +66,7 @@ feature {NONE} -- Initialization
 			x := a_x
 			y := a_y
 			time_ms := a_time
+			text := No_text
 		ensure
 			kind_set: kind = a_kind
 			id_set: pointer_id = a_id
@@ -83,11 +87,34 @@ feature {NONE} -- Initialization
 			key_code := a_code
 			time_ms := a_time
 			pointer_id := -1
+			text := No_text
 		ensure
 			kind_set: kind = a_kind
 			code_set: key_code = a_code
 			time_set: time_ms = a_time
 			no_id: pointer_id = -1
+			no_position: x = 0 and y = 0
+		end
+
+	make_service (a_kind, a_code: INTEGER; a_text: READABLE_STRING_32; a_time: INTEGER)
+			-- Result `a_kind' from a Java service, with its code and text.
+		require
+			service_kind: is_service_kind (a_kind)
+			code_ok: a_code >= 0
+			time_ok: a_time >= 0
+		do
+			kind := a_kind
+			service_code := a_code
+			text := a_text
+			time_ms := a_time
+			pointer_id := -1
+		ensure
+			kind_set: kind = a_kind
+			code_set: service_code = a_code
+			text_set: text = a_text
+			time_set: time_ms = a_time
+			no_id: pointer_id = -1
+			no_key: key_code = 0
 			no_position: x = 0 and y = 0
 		end
 
@@ -109,6 +136,12 @@ feature -- Access
 
 	key_code: INTEGER
 			-- Android key code for key events; 0 otherwise.
+
+	service_code: INTEGER
+			-- For service results, the reason or outcome code; 0 otherwise.
+
+	text: READABLE_STRING_32
+			-- For service results, the path or message; empty otherwise.
 
 feature -- Status
 
@@ -136,6 +169,20 @@ feature -- Status
 			Result := is_key_kind (kind)
 		end
 
+	is_service: BOOLEAN
+			-- Is this a result from a Java service?
+		do
+			Result := is_service_kind (kind)
+		end
+
+feature {NONE} -- Implementation
+
+	No_text: STRING_32
+			-- Shared empty text, so that a touch event costs no allocation here.
+		once
+			create Result.make_empty
+		end
+
 feature -- Output
 
 	out_line: STRING_8
@@ -146,6 +193,8 @@ feature -- Output
 				Result.append (" id=" + pointer_id.out + " x=" + x.out + " y=" + y.out)
 			elseif is_key then
 				Result.append (" code=" + key_code.out)
+			elseif is_service then
+				Result.append (" code=" + service_code.out)
 			end
 			Result.append (" t=" + time_ms.out)
 		ensure
@@ -155,7 +204,7 @@ feature -- Output
 
 invariant
 	valid_kind: is_valid_kind (kind)
-	one_family: is_none.to_integer + is_lifecycle.to_integer + is_touch.to_integer + is_key.to_integer = 1
+	one_family: is_none.to_integer + is_lifecycle.to_integer + is_touch.to_integer + is_key.to_integer + is_service.to_integer = 1
 	touch_has_id: is_touch implies pointer_id >= 0
 	non_touch_no_id: not is_touch implies pointer_id = -1
 	key_has_code: is_key = (key_code > 0)

@@ -61,6 +61,8 @@
                 <p>With no callbacks, the app can't answer "did you handle this?" when Back arrives. So it sets a policy first.</p>
                 <h3>Self-drawn UI</h3>
                 <p>Apps draw their own pixels and hand them over with <code>present_argb</code>. Java stays out of the way: a small fixed helper is there only for what Android offers nowhere else.</p>
+                <h3>Java answers through a mailbox</h3>
+                <p>Read-aloud and the file picker answer on Java's own threads, and no Java thread may touch an Eiffel object. So <code>EifPhoneActivity</code> hands each answer to a small locked mailbox in the C glue, and wakes the Eiffel loop. The next wait moves it into the ordinary event queue. Text crosses as UTF-8 bytes, so Hebrew is safe.</p>
                 <h3>A fast <code>setjmp</code></h3>
                 <p>On Android, <code>setjmp</code> saves the signal mask, which is a system call. gec's C uses it in every assertion block and rescue. <code>runtime/c/sephone_fastjmp.h</code> maps it to <code>_setjmp</code> for every phone build.</p>
                 <h3>One Eiffel system per process</h3>

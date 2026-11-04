@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0] - unreleased
+
+### Added
+- **Read-aloud:** `phone.speech` reads text aloud, Hebrew included if the engine has it. Needs `java_helper = true`.
+- **File picker:** `phone.files` opens Android's picker. A chosen file arrives as a plain file in the app's cache.
+- **Java answers Eiffel:** the helper's results arrive as ordinary events, through a locked mailbox in the C glue.
+- **`examples/read_aloud`:** choose a text file and hear it.
+- **Tests:** 6 more logic tests and 6 more on-device tests.
+
+### Known limitations
+- Read-aloud has only run on the emulator, which has no sound. The engine ran each sentence to its end, but nobody has heard it yet.
+
 ## [0.2.0] - unreleased
 
 ### Added

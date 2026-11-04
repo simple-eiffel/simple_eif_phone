@@ -219,6 +219,10 @@ feature -- Manifest
 			across project.permissions as ic loop
 				Result.append ({STRING_32} "    <uses-permission android:name=%"" + xml_escaped (ic.to_string_32) + {STRING_32} "%"/>%N")
 			end
+			if project.uses_java_helper then
+					-- Android 11 on: the speech engine stays hidden from an app that does not ask.
+				Result.append ({STRING_32} "    <queries>%N        <intent>%N            <action android:name=%"android.intent.action.TTS_SERVICE%"/>%N        </intent>%N    </queries>%N")
+			end
 			Result.append ({STRING_32} "    <application%N")
 			Result.append ({STRING_32} "        android:label=%"" + manifest_value (project.label) + {STRING_32} "%"%N")
 			if project.uses_java_helper then
