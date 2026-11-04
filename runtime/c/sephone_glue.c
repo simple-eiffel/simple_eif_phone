@@ -21,9 +21,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 #include "sephone.h"
+#include "sephone_bridge.h"
 
 extern int GE_main(int argc, char **argv);
 
@@ -37,7 +39,7 @@ typedef struct {
 
 /* What Java has sent and the Eiffel thread has not yet taken. See sephone.h. */
 typedef struct sephone_note {
-	int kind, code;
+	int kind, code, id, x, y;
 	char *text;
 	struct sephone_note *next;
 } sephone_note;
@@ -57,7 +59,7 @@ static JNIEnv *s_env = NULL;   /* this thread's JNI handle; attached in android_
 static pthread_mutex_t s_mail_lock = PTHREAD_MUTEX_INITIALIZER;
 static sephone_note *s_mail_first = NULL, *s_mail_last = NULL;
 static int s_helper = 0;
-static jmethodID s_m_speech_start = NULL, s_m_speak = NULL, s_m_speech_stop = NULL, s_m_pick = NULL;
+static jmethodID s_m_speech_start = NULL, s_m_speak = NULL, s_m_speech_stop = NULL, s_m_pick = NULL, s_m_keyboard = NULL;
 
 /* ------------------------------------------------------------------ time */
 
@@ -269,7 +271,7 @@ static void sephone_drain_mail(void)
 	while (n) {
 		sephone_note *next = n->next;
 		s_push_text = n->text;
-		sephone_push(n->kind, sephone_ms_from_ns(sephone_now_ns()), -1, 0, 0, n->code);
+		sephone_push(n->kind, sephone_ms_from_ns(sephone_now_ns()), n->id, n->x, n->y, n->code);
 		free(n);
 		n = next;
 	}
@@ -316,28 +318,45 @@ int sephone_delivery_count(void) { return s_delivered; }
 
 /* ------------------------------------------------------- Java services */
 
-/* Registered on EifPhoneActivity. Runs on Java's threads: mailbox only. */
-static void JNICALL sephone_java_event(JNIEnv *env, jclass cls, jint kind, jint code, jbyteArray text)
+/* Any thread: the mailbox is all it touches. */
+void sephone_mail(int kind, int code, int id, int x, int y, char *text)
 {
 	sephone_note *n = (sephone_note *)calloc(1, sizeof(sephone_note));
-	jsize count = text ? (*env)->GetArrayLength(env, text) : 0;
-	(void)cls;
-	if (!n) return;
-	n->kind = (int)kind;
-	n->code = (int)code;
-	if (count > 0) {
-		n->text = (char *)malloc((size_t)count + 1);
-		if (n->text) {
-			(*env)->GetByteArrayRegion(env, text, 0, count, (jbyte *)n->text);
-			n->text[count] = 0;
-		}
+	if (!n) {
+		free(text);
+		return;
 	}
+	n->kind = kind;
+	n->code = code;
+	n->id = id;
+	n->x = x;
+	n->y = y;
+	n->text = text;
 	pthread_mutex_lock(&s_mail_lock);
 	if (s_mail_last) s_mail_last->next = n;
 	else s_mail_first = n;
 	s_mail_last = n;
 	pthread_mutex_unlock(&s_mail_lock);
 	if (s_app) ALooper_wake(s_app->looper);
+}
+
+jobject sephone_activity(void) { return s_app->activity->clazz; }
+JNIEnv *sephone_thread_env(void) { return s_env; }
+
+/* Registered on EifPhoneActivity. Runs on Java's threads: mailbox only. */
+static void JNICALL sephone_java_event(JNIEnv *env, jclass cls, jint kind, jint code, jbyteArray text)
+{
+	jsize count = text ? (*env)->GetArrayLength(env, text) : 0;
+	char *copy = NULL;
+	(void)cls;
+	if (count > 0) {
+		copy = (char *)malloc((size_t)count + 1);
+		if (copy) {
+			(*env)->GetByteArrayRegion(env, text, 0, count, (jbyte *)copy);
+			copy[count] = 0;
+		}
+	}
+	sephone_mail((int)kind, (int)code, -1, 0, 0, copy);
 }
 
 static jmethodID sephone_helper_method(JNIEnv *env, jclass cls, const char *name, const char *sig)
@@ -362,10 +381,12 @@ static void sephone_java_setup(void)
 	s_m_speak = sephone_helper_method(env, cls, "sephoneSpeak", "([B[B)V");
 	s_m_speech_stop = sephone_helper_method(env, cls, "sephoneSpeechStop", "()V");
 	s_m_pick = sephone_helper_method(env, cls, "sephonePickFile", "([B)V");
-	if (s_m_speech_start && s_m_speak && s_m_speech_stop && s_m_pick) {
+	s_m_keyboard = sephone_helper_method(env, cls, "sephoneKeyboard", "(I)V");
+	if (s_m_speech_start && s_m_speak && s_m_speech_stop && s_m_pick && s_m_keyboard) {
 		if ((*env)->RegisterNatives(env, cls, &native, 1) == 0) s_helper = 1;
 		else (*env)->ExceptionClear(env);
 	}
+	if (s_helper) sephone_controls_setup(env, cls);
 	(*env)->DeleteLocalRef(env, cls);
 }
 
@@ -418,6 +439,13 @@ void sephone_pick_file(const char *type)
 	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_pick, a);
 	sephone_clear_exception(s_env);
 	(*s_env)->DeleteLocalRef(s_env, a);
+}
+
+void sephone_keyboard(int show)
+{
+	if (!s_helper) return;
+	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_keyboard, (jint)show);
+	sephone_clear_exception(s_env);
 }
 
 /* TEST ONLY (examples/phone_tests): exercise the overflow rule without a device driver. */
@@ -493,17 +521,22 @@ void sephone_frame_fill(int x, int y, int w, int h, int rgb)
 	}
 }
 
-void sephone_frame_present_argb(const void *pixels, int width, int height, int stride)
+void sephone_frame_present_argb_at(const void *pixels, int width, int height, int stride, int x, int y)
 {
 	int rows, cols, r, c;
-	if (!s_locked || !pixels) return;
-	rows = height < s_buf.height ? height : s_buf.height;
-	cols = width < s_buf.width ? width : s_buf.width;
+	if (!s_locked || !pixels || x < 0 || y < 0) return;
+	rows = height < s_buf.height - y ? height : s_buf.height - y;
+	cols = width < s_buf.width - x ? width : s_buf.width - x;
 	for (r = 0; r < rows; r++) {
 		const uint32_t *src = (const uint32_t *)((const char *)pixels + (size_t)r * (size_t)stride);
-		uint32_t *dst = (uint32_t *)s_buf.bits + (size_t)r * (size_t)s_buf.stride;
+		uint32_t *dst = (uint32_t *)s_buf.bits + (size_t)(r + y) * (size_t)s_buf.stride + (size_t)x;
 		for (c = 0; c < cols; c++) dst[c] = sephone_rgbx(src[c] & 0xFFFFFFu);   /* cairo ARGB32: 0xAARRGGBB */
 	}
+}
+
+void sephone_frame_present_argb(const void *pixels, int width, int height, int stride)
+{
+	sephone_frame_present_argb_at(pixels, width, height, stride, 0, 0);
 }
 
 uint32_t sephone_frame_peek(int x, int y)
@@ -683,6 +716,13 @@ void android_main(struct android_app *app)
 	sephone_redirect_output();
 	if ((*app->activity->vm)->AttachCurrentThread(app->activity->vm, &s_env, NULL) != 0) s_env = NULL;
 	sephone_java_setup();
+	/* Android starts an app in /, which it cannot write. Plain relative file names
+	   work from the app's own folder, as they do on a PC. */
+	if (app->activity->internalDataPath) {
+		mkdir(app->activity->internalDataPath, 0700);
+		if (chdir(app->activity->internalDataPath) != 0)
+			__android_log_write(ANDROID_LOG_WARN, SEPHONE_TAG, "android_main: cannot enter the app folder");
+	}
 	__android_log_write(ANDROID_LOG_INFO, SEPHONE_TAG, "android_main: starting Eiffel");
 	GE_main(1, argv);
 	__android_log_write(ANDROID_LOG_INFO, SEPHONE_TAG, "android_main: Eiffel returned; ending the process");

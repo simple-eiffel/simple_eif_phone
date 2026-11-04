@@ -4,9 +4,19 @@ import android.app.NativeActivity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.OpenableColumns;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.Selection;
+import android.text.TextWatcher;
+import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.WindowManager;
+import android.widget.EditText;
+import android.widget.PopupWindow;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,6 +43,10 @@ public class EifPhoneActivity extends NativeActivity {
 	private static final int FILE_PICKED = 43;
 	private static final int FILE_CANCELLED = 44;
 	private static final int FILE_FAILED = 45;
+	private static final int KEYBOARD_TEXT = 46;
+	private static final int KEYBOARD_BACKSPACE = 47;
+	private static final int KEYBOARD_ENTER = 48;
+	private static final int KEYBOARD_CLOSED = 49;
 
 	private static final int FAILED_NO_ENGINE = 1;
 	private static final int FAILED_LANGUAGE = 2;
@@ -44,6 +58,12 @@ public class EifPhoneActivity extends NativeActivity {
 
 	private TextToSpeech speech;
 	private int utterance = 0;
+
+	/** Kept in the hidden box, so that a backspace has something to delete. */
+	private static final String KEYBOARD_MARK = "\u200B";
+	private PopupWindow keyboardWindow;
+	private EditText keyboardBox;
+	private boolean keyboardResetting;
 
 	private static native void sephoneEvent(int kind, int code, byte[] text);
 
@@ -94,6 +114,80 @@ public class EifPhoneActivity extends NativeActivity {
 				speech.stop();
 			}
 		});
+	}
+
+	// ---- the phone's keyboard, for screens that draw their own text boxes
+
+	public void sephoneKeyboard(int show) {
+		runOnUiThread(() -> {
+			if (show != 0) {
+				openKeyboard();
+			} else if (keyboardWindow != null) {
+				keyboardWindow.dismiss();
+			}
+		});
+	}
+
+	/**
+	 * NativeActivity's window takes no text, so a hidden one-pixel box in a popup
+	 * window receives it. Everything typed goes to Eiffel, and the box is emptied.
+	 */
+	private void openKeyboard() {
+		if (keyboardWindow != null && keyboardWindow.isShowing()) {
+			return;
+		}
+		keyboardBox = new EditText(this) {
+			// Back closes the keyboard and its popup together, or it would take a second
+			// Back to close the popup, which nobody can see.
+			@Override
+			public boolean onKeyPreIme(int key, KeyEvent event) {
+				if (key == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP) {
+					keyboardWindow.dismiss();
+					return true;
+				}
+				return super.onKeyPreIme(key, event);
+			}
+		};
+		keyboardBox.setSingleLine(true);
+		keyboardBox.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+		keyboardBox.setText(KEYBOARD_MARK);
+		keyboardBox.setSelection(KEYBOARD_MARK.length());
+		keyboardBox.setOnEditorActionListener((view, action, event) -> {
+			send(KEYBOARD_ENTER, 0, "");
+			return true;
+		});
+		keyboardBox.addTextChangedListener(new TextWatcher() {
+			@Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+			@Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+			@Override public void afterTextChanged(Editable s) {
+				if (!keyboardResetting) {
+					keyboardTyped(s);
+				}
+			}
+		});
+		keyboardWindow = new PopupWindow(keyboardBox, 1, 1, true);
+		keyboardWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NEEDED);
+		// A request made now would come before the popup has the focus, and be dropped.
+		keyboardWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+		if (Build.VERSION.SDK_INT >= 29) {
+			keyboardWindow.setTouchModal(false);   // the app below still takes touches
+		}
+		keyboardWindow.setOnDismissListener(() -> send(KEYBOARD_CLOSED, 0, ""));
+		keyboardWindow.showAtLocation(getWindow().getDecorView(), Gravity.TOP | Gravity.START, 0, 0);
+		keyboardBox.requestFocus();
+	}
+
+	private void keyboardTyped(Editable box) {
+		String typed = box.toString();
+		if (typed.isEmpty()) {
+			send(KEYBOARD_BACKSPACE, 0, "");
+		} else if (!typed.equals(KEYBOARD_MARK)) {
+			send(KEYBOARD_TEXT, 0, typed.replace(KEYBOARD_MARK, ""));
+		}
+		keyboardResetting = true;
+		box.replace(0, box.length(), KEYBOARD_MARK);
+		Selection.setSelection(box, KEYBOARD_MARK.length());
+		keyboardResetting = false;
 	}
 
 	// ---- file picker

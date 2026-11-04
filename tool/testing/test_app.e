@@ -35,6 +35,8 @@ feature {NONE} -- Test Runners
 		do
 			create l_lib_tests
 			run_test (agent l_lib_tests.test_project_native_read, "test_project_native_read")
+			run_test (agent l_lib_tests.test_project_libraries_per_abi, "test_project_libraries_per_abi")
+			run_test (agent l_lib_tests.test_project_library_must_be_an_archive, "test_project_library_must_be_an_archive")
 			run_test (agent l_lib_tests.test_project_no_native_is_fine, "test_project_no_native_is_fine")
 			run_test (agent l_lib_tests.test_project_native_missing_source_named, "test_project_native_missing_source_named")
 			run_test (agent l_lib_tests.test_project_native_only_c_sources, "test_project_native_only_c_sources")
@@ -69,6 +71,7 @@ feature {NONE} -- Test Runners
 			run_test (agent l_e2e.test_fr008_incremental_skips_unchanged, "test_fr008_incremental_skips_unchanged")
 			run_test (agent l_e2e.test_fr011_dex_only_with_helper, "test_fr011_dex_only_with_helper")
 			run_test (agent l_e2e.test_ac10_java_helper_scaffold, "test_ac10_java_helper_scaffold")
+			run_test (agent l_e2e.test_controls_app, "test_controls_app")
 			run_test (agent l_e2e.test_q12_icon_and_permissions_in_manifest, "test_q12_icon_and_permissions_in_manifest")
 			run_test (agent l_e2e.test_q12_missing_icon_named, "test_q12_missing_icon_named")
 			run_test (agent l_e2e.test_ac3_planted_gec_error, "test_ac3_planted_gec_error")

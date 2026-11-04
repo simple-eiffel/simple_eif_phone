@@ -30,6 +30,8 @@ feature {NONE} -- Initialization
 			create native_sources.make (0)
 			create native_includes.make (0)
 			create native_defines.make (0)
+			create native_libraries.make (4)
+			create native_abi_includes.make (2)
 			create errors.make (0)
 		ensure
 			not_loaded: not is_loaded
@@ -120,6 +122,8 @@ feature -- Access: [android]
 	min_sdk: INTEGER
 	target_sdk: INTEGER
 	uses_java_helper: BOOLEAN
+	uses_controls: BOOLEAN
+			-- Does the app use Android's own controls? Brings the Java helper with it.
 	permissions: ARRAYED_LIST [STRING_8]
 
 feature -- Access: [native]
@@ -132,6 +136,23 @@ feature -- Access: [native]
 
 	native_defines: ARRAYED_LIST [STRING_8]
 			-- NAME or NAME=value, passed to clang.
+
+	native_libraries: ARRAYED_LIST [STRING_8]
+			-- Static libraries (.a) linked into the app, in order, as written in
+			-- the file. $ABI stands for the processor type being built.
+
+	native_abi_includes: ARRAYED_LIST [STRING_8]
+			-- Include folders that differ by processor type, with $ABI in them.
+
+	for_abi (a_text: READABLE_STRING_8; a_abi: READABLE_STRING_8): PATH
+			-- `a_text' as a path for processor type `a_abi'.
+		local
+			l_text: STRING_8
+		do
+			create l_text.make_from_string (a_text)   -- the original stays as written, for the next ABI
+			l_text.replace_substring_all (Abi_mark, a_abi)
+			Result := native_path (l_text)
+		end
 
 	is_native_define (a_text: READABLE_STRING_8): BOOLEAN
 			-- Is `a_text' NAME or NAME=value, with nothing a command line could act on?
@@ -249,6 +270,7 @@ feature {NONE} -- Reading tables
 			min_sdk := 0
 			target_sdk := 0
 			uses_java_helper := False
+			uses_controls := False
 			permissions.wipe_out
 			keystore_path := Void
 			key_alias := Void
@@ -334,6 +356,8 @@ feature {NONE} -- Reading tables
 					add_error ("android", {STRING_32} "target_sdk (" + target_sdk.out + ") must not be below min_sdk (" + min_sdk.out + ")")
 				end
 				uses_java_helper := flag (al_t, "android", "java_helper")
+				uses_controls := flag (al_t, "android", "controls")
+				uses_java_helper := uses_java_helper or uses_controls
 				if attached string_list (al_t, "android", "permissions", False) as al_l then
 					permissions.append (al_l)
 				end
@@ -403,6 +427,15 @@ feature {NONE} -- Reading tables
 						add_native_include (ic)
 					end
 				end
+				if attached string_list (al_t, "native", "libraries", False) as al_l then
+					across al_l as ic loop
+						if ic.ends_with (".a") then
+							native_libraries.extend (ic)
+						else
+							add_error ("native", {STRING_32} "libraries: " + ic.to_string_32 + " is not a .a file")
+						end
+					end
+				end
 				if attached string_list (al_t, "native", "defines", False) as al_l then
 					across al_l as ic loop
 						if is_native_define (ic) then
@@ -439,16 +472,21 @@ feature {NONE} -- Reading tables
 		local
 			l_path: PATH
 		do
-			l_path := native_path (a_text)
-			if (create {DIRECTORY}.make_with_path (l_path)).exists then
-				native_includes.extend (l_path)
+			if a_text.has_substring (Abi_mark) then
+				native_abi_includes.extend (a_text)
 			else
-				add_error ("native", {STRING_32} "include: " + a_text.to_string_32 + " was not found")
+				l_path := native_path (a_text)
+				if (create {DIRECTORY}.make_with_path (l_path)).exists then
+					native_includes.extend (l_path)
+				else
+					add_error ("native", {STRING_32} "include: " + a_text.to_string_32 + " was not found")
+				end
 			end
 		end
 
 	native_path (a_text: STRING_8): PATH
-			-- `a_text' as an absolute path. A leading $SIMPLE_EIFFEL names the library root.
+			-- `a_text' as an absolute path. A leading $SIMPLE_EIFFEL names the library root,
+			-- and a leading $EIFPHONE_NATIVE the folder of C libraries built for Android.
 		local
 			l_env: SIMPLE_ENV
 			l_root: STRING_32
@@ -461,6 +499,15 @@ feature {NONE} -- Reading tables
 					create l_root.make_from_string_general ({EIFPHONE_TOOLCHAIN}.Default_simple_eiffel)
 				end
 				l_root.append_string_general (a_text.substring (Library_root_prefix.count + 1, a_text.count))
+				Result := resolved (l_root)
+			elseif a_text.starts_with (Native_root_prefix) then
+				create l_env
+				if attached l_env.get ("EIFPHONE_NATIVE") as al_v and then not al_v.is_empty then
+					create l_root.make_from_string_general (al_v)
+				else
+					create l_root.make_from_string_general ({EIFPHONE_TOOLCHAIN}.Default_native)
+				end
+				l_root.append_string_general (a_text.substring (Native_root_prefix.count + 1, a_text.count))
 				Result := resolved (l_root)
 			else
 				Result := resolved (a_text.to_string_32)
@@ -480,6 +527,10 @@ feature {NONE} -- Reading tables
 		end
 
 	Library_root_prefix: STRING_8 = "$SIMPLE_EIFFEL"
+
+	Native_root_prefix: STRING_8 = "$EIFPHONE_NATIVE"
+
+	Abi_mark: STRING_8 = "$ABI"
 
 feature {NONE} -- Value helpers
 

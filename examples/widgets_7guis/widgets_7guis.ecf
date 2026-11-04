@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" name="widgets_7guis" uuid="9A1E5D27-3F46-4C80-B2D9-6E08F7C1A493">
+	<description>simple_eif_phone demo: simple_widgets' own 7GUIs benchmark, its source unchanged, on the phone (gec).</description>
+	<target name="widgets_7guis">
+		<root class="SW_7GUIS" feature="make"/>
+		<option warning="warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<setting name="console_application" value="true"/>
+		<capability>
+			<void_safety support="all"/>
+		</capability>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf"/>
+		<library name="simple_cairo" location="$SIMPLE_EIFFEL\simple_cairo\simple_cairo.ecf"/>
+		<library name="simple_widgets" location="$SIMPLE_EIFFEL\simple_eif_phone\android_shell\simple_widgets_android.ecf"/>
+		<cluster name="demo7guis" location="$SIMPLE_EIFFEL\simple_widgets\demo7guis\" recursive="true"/>
+	</target>
+</system>

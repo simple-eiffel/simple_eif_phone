@@ -92,6 +92,20 @@ feature -- Frame
 			still_in_frame: in_frame
 		end
 
+	present_argb_at (a_pixels: POINTER; a_width, a_height, a_stride, a_x, a_y: INTEGER)
+			-- Copy an ARGB32 image to (`a_x', `a_y'), clipped.
+		require
+			in_frame: in_frame
+			pixels_exist: a_pixels /= default_pointer
+			size_ok: a_width > 0 and a_height > 0
+			stride_ok: a_stride >= a_width * 4
+			place_ok: a_x >= 0 and a_y >= 0
+		do
+			c_frame_present_argb_at (a_pixels, a_width, a_height, a_stride, a_x, a_y)
+		ensure
+			still_in_frame: in_frame
+		end
+
 	end_frame
 			-- Unlock and show the frame.
 		require

@@ -37,6 +37,9 @@
                 <h2>The layers</h2>
                 <pre><code> your app (Eiffel)
       |
+ PHONE_CONTROLS     Android&#x27;s own controls  (cluster src/controls)
+   or SW_WINDOW     simple_widgets on cairo (cluster android_shell)
+      |
  SIMPLE_EIF_PHONE   events, lifecycle, touches, screen, metrics, storage, assets, log
       |
  PHONE_NATIVE       the only class that calls C
@@ -44,6 +47,8 @@
  runtime/c          sephone glue + Android&#x27;s native_app_glue
       |
  Android            NativeActivity</code></pre>
+                <p>Android has no C API for its controls, so <code>runtime/c/sephone_controls.c</code> makes and drives them through JNI. A control may be touched only on Android's UI thread, so Eiffel queues orders and the UI thread carries them out. Orders never wait for an answer: Android's UI thread blocks on the Eiffel thread during pause and resume, and a wait the other way would deadlock. What a control has to say comes back as an event.</p>
+                <p><code>NativeActivity</code> takes the window's surface and input for itself. <code>EifPhoneControlsActivity</code> hands both back, so controls draw and receive touches, while the Eiffel thread and lifecycle events stay as they are.</p>
                 <p>The model classes (<code>PHONE_LIFECYCLE</code>, <code>PHONE_TOUCHES</code>, <code>PHONE_EVENT</code>) use no C, so their contracts and tests run on a PC too.</p>
             </section>
             <section>

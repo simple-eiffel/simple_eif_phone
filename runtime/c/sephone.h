@@ -55,7 +55,15 @@
  * threads enter the glue, and they touch nothing but the mailbox.
  * Text crosses as UTF-8 bytes.
  *
- * Event codes must match PHONE_EVENT_KIND.
+ * CONTROLS: Android's own controls, for apps built with controls = true.
+ * Owner: sephone_controls.c, which also explains the threads. sephone_control
+ * queues an order and returns at once; orders never answer, and a control
+ * speaks only through SEPHONE_CONTROL_* events. Eiffel chooses control ids.
+ * sephone_canvas_* draw on the Eiffel thread, between begin and end; their
+ * measures are density-independent pixels.
+ *
+ * Event codes must match PHONE_EVENT_KIND. Order and control codes must
+ * match PHONE_CONTROL_CODES.
  */
 #ifndef SEPHONE_H
 #define SEPHONE_H
@@ -84,12 +92,85 @@
 #define SEPHONE_FILE_PICKED 43
 #define SEPHONE_FILE_CANCELLED 44
 #define SEPHONE_FILE_FAILED 45
+#define SEPHONE_KEYBOARD_TEXT 46
+#define SEPHONE_KEYBOARD_BACKSPACE 47
+#define SEPHONE_KEYBOARD_ENTER 48
+#define SEPHONE_KEYBOARD_CLOSED 49
+#define SEPHONE_CONTROL_CLICKED 50
+#define SEPHONE_CONTROL_CHANGED 51
+#define SEPHONE_CONTROL_ROWS 52
+#define SEPHONE_CONTROL_SELECTED 53
+#define SEPHONE_CONTROL_PRESSED 54
+#define SEPHONE_CONTROL_SWEPT 55
+#define SEPHONE_CONTROL_RELEASED 56
+#define SEPHONE_CONTROL_CANVAS_READY 57
+#define SEPHONE_CONTROL_CANVAS_LOST 58
+#define SEPHONE_CONTROL_ANSWERED 59
+#define SEPHONE_CONTROL_CALLED 60
+#define SEPHONE_CONTROL_FAILED 61
+#define SEPHONE_CONTROL_BACK 62
 #define SEPHONE_TOUCH_DOWN 20
 #define SEPHONE_TOUCH_MOVE 21
 #define SEPHONE_TOUCH_UP 22
 #define SEPHONE_TOUCH_CANCEL 23
 #define SEPHONE_KEY_DOWN 30
 #define SEPHONE_KEY_UP 31
+
+/* Kinds of control (mirror of PHONE_CONTROL_CODES). */
+#define SEPHONE_CONTROL_LABEL 1
+#define SEPHONE_CONTROL_BUTTON 2
+#define SEPHONE_CONTROL_TEXT_BOX 3
+#define SEPHONE_CONTROL_COLUMN 4
+#define SEPHONE_CONTROL_ROW 5
+#define SEPHONE_CONTROL_LIST 6
+#define SEPHONE_CONTROL_CANVAS 7
+#define SEPHONE_CONTROL_SCROLL 8
+#define SEPHONE_CONTROL_CHECK_BOX 9
+#define SEPHONE_CONTROL_SWITCH 10
+#define SEPHONE_CONTROL_SLIDER 11
+#define SEPHONE_CONTROL_PROGRESS 12
+#define SEPHONE_CONTROL_CHOICE 13
+#define SEPHONE_CONTROL_RADIO_GROUP 14
+#define SEPHONE_CONTROL_ANY 15
+#define SEPHONE_CONTROL_IMAGE 16
+
+/* Orders (mirror of PHONE_CONTROL_CODES). */
+#define SEPHONE_OP_NEW 1
+#define SEPHONE_OP_ADD 2
+#define SEPHONE_OP_REMOVE 3
+#define SEPHONE_OP_SHOW 4
+#define SEPHONE_OP_TEXT 5
+#define SEPHONE_OP_ENABLED 6
+#define SEPHONE_OP_VISIBLE 7
+#define SEPHONE_OP_TEXT_STYLE 8
+#define SEPHONE_OP_SPACING 9
+#define SEPHONE_OP_HEIGHT 10
+#define SEPHONE_OP_CHECKED 11
+#define SEPHONE_OP_VALUE 12
+#define SEPHONE_OP_MAXIMUM 13
+#define SEPHONE_OP_CHOICE_ADD 14
+#define SEPHONE_OP_CHOICE_CLEAR 15
+#define SEPHONE_OP_SELECT 16
+#define SEPHONE_OP_RADIO_ADD 17
+#define SEPHONE_OP_ROW_COUNT 18
+#define SEPHONE_OP_ROW 19
+#define SEPHONE_OP_ROWS_DONE 20
+#define SEPHONE_OP_SINGLE_LINE 21
+#define SEPHONE_OP_MASKED 22
+#define SEPHONE_OP_HINT 23
+#define SEPHONE_OP_FOCUS 24
+#define SEPHONE_OP_TOAST 25
+#define SEPHONE_OP_DIALOG 26
+#define SEPHONE_OP_DATE 27
+#define SEPHONE_OP_TIME 28
+#define SEPHONE_OP_CALL 29
+#define SEPHONE_OP_ASK 30
+#define SEPHONE_OP_LISTEN 31
+#define SEPHONE_OP_DISCARD 32
+#define SEPHONE_OP_BACK 33
+#define SEPHONE_OP_IMAGE 34
+#define SEPHONE_OP_MENU 35
+#define SEPHONE_OP_PADDING 36
 
 /* Back-key policy. */
 #define SEPHONE_BACK_SYSTEM 0  /* Android also handles Back (finishes the app) */
@@ -120,10 +201,25 @@ void sephone_speech_start(void);
 void sephone_speak(const char *text, const char *language);
 void sephone_speech_stop(void);
 void sephone_pick_file(const char *type);
+void sephone_keyboard(int show);
 void sephone_set_back_policy(int policy);
 int  sephone_back_policy(void);     /* RB-16 */
 void sephone_keep_screen_on(int on);
 void sephone_finish(void);
+
+/* Controls. */
+int  sephone_controls_present(void);        /* 1 if this app was built with controls = true */
+int  sephone_controls_density_percent(void); /* screen pixels per density-independent pixel, times 100 */
+void sephone_control(int op, int id, int a, int b, const char *text);
+
+/* Drawing on a canvas control. */
+int  sephone_canvas_begin(int id, int background);   /* 1 if ready to draw */
+void sephone_canvas_end(void);
+void sephone_canvas_color(int rgb);
+void sephone_canvas_rect(double x, double y, double w, double h);
+void sephone_canvas_line(double x1, double y1, double x2, double y2, double width);
+void sephone_canvas_text(double x, double y, const char *text, double size, int bold);
+double sephone_canvas_measure(const char *text, double size, int bold);
 
 /* Window and frame (RGBX_8888 window buffer). */
 int  sephone_window_exists(void);
@@ -133,6 +229,7 @@ int  sephone_frame_lock(void);      /* 1 if locked */
 void sephone_frame_unlock(void);    /* unlock and post */
 void sephone_frame_fill(int x, int y, int w, int h, int rgb);
 void sephone_frame_present_argb(const void *pixels, int width, int height, int stride);
+void sephone_frame_present_argb_at(const void *pixels, int width, int height, int stride, int x, int y);
 uint32_t sephone_frame_peek(int x, int y); /* TEST ONLY: buffer word at (x,y) while locked */
 
 /* Metrics. */

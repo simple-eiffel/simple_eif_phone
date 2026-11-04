@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" name="simple_shaping_android" uuid="E3A9C7D1-6B24-4F58-8D13-92C4B7E1F056" library_target="simple_shaping_android">
+	<description>simple_shaping for Android: its own source, unchanged, with this cluster in place of its Windows folders. Compiled by gec.</description>
+	<target name="simple_shaping_android">
+		<root all_classes="true"/>
+		<file_rule>
+			<exclude>/EIFGENs$</exclude>
+			<exclude>/\..*$</exclude>
+		</file_rule>
+		<option warning="warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<capability>
+			<concurrency support="scoop" use="thread"/>
+			<void_safety support="all"/>
+		</capability>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="simple_mml" location="$SIMPLE_EIFFEL\simple_mml\simple_mml.ecf"/>
+		<library name="simple_cairo" location="$SIMPLE_EIFFEL\simple_cairo\simple_cairo.ecf"/>
+		<cluster name="android_shaping" location=".\"/>
+		<cluster name="shaping" location="$SIMPLE_EIFFEL\simple_shaping\src\" recursive="true">
+			<file_rule>
+				<exclude>/directwrite$</exclude>
+				<exclude>/native$</exclude>
+				<exclude>/fonts$</exclude>
+			</file_rule>
+		</cluster>
+	</target>
+</system>

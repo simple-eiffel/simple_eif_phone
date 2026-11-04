@@ -173,6 +173,22 @@ feature -- Build (AC-2, AC-4, FR-008, FR-011)
 			assert ("speech engine visible", l_manifest.has_substring ("android.intent.action.TTS_SERVICE"))
 		end
 
+	test_controls_app
+			-- controls = true brings the Java helper and names the controls activity.
+		local
+			d: PATH
+			l_manifest: STRING
+		do
+			d := new_project ("controlsapp")
+			toml_replace (d, "java_helper = false", "controls = true")
+			run_tool ({STRING_32} "build " + text_of (d))
+			assert ("built: " + last_text, last_exit = 0)
+			assert ("dex stage", last_text.has_substring ("ok  dex"))
+			l_manifest := read_text (d.extended ("build").extended ("AndroidManifest.xml"))
+			assert ("hasCode true", l_manifest.has_substring ("android:hasCode=%"true%""))
+			assert ("controls activity", l_manifest.has_substring ("EifPhoneControlsActivity"))
+		end
+
 	test_q12_icon_and_permissions_in_manifest
 			-- Q12: [app] icon and [android] permissions reach the finished APK.
 		local

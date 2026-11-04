@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" name="simple_widgets_android" uuid="B6D1F3A2-4C87-4E19-9A30-5E72C8D41B06" library_target="simple_widgets_android">
+	<description>simple_widgets for Android: its own source, unchanged, with the android_shell cluster where simple_shell would be. Compiled by gec.</description>
+	<target name="simple_widgets_android">
+		<root all_classes="true"/>
+		<file_rule>
+			<exclude>/EIFGENs$</exclude>
+			<exclude>/\..*$</exclude>
+		</file_rule>
+		<option warning="warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<setting name="dead_code_removal" value="feature"/>
+		<capability>
+			<concurrency support="scoop" use="thread"/>
+			<void_safety support="all"/>
+		</capability>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL/simple_eif_phone/simple_eif_phone.ecf"/>
+		<library name="simple_cairo" location="$SIMPLE_EIFFEL/simple_cairo/simple_cairo.ecf"/>
+		<library name="simple_shaping" location="$SIMPLE_EIFFEL/simple_eif_phone/android_shaping/simple_shaping_android.ecf"/>
+		<library name="simple_document" location="$SIMPLE_EIFFEL/simple_document/simple_document.ecf"/>
+		<library name="simple_markdown" location="$SIMPLE_EIFFEL/simple_markdown/simple_markdown.ecf"/>
+		<library name="simple_datetime" location="$SIMPLE_EIFFEL/simple_datetime/simple_datetime.ecf"/>
+		<cluster name="android_shell" location=".\"/>
+		<cluster name="widgets" location="$SIMPLE_EIFFEL\simple_widgets\src\" recursive="true"/>
+	</target>
+</system>

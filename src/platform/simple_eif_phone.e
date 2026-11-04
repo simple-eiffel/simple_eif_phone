@@ -40,6 +40,8 @@ feature {NONE} -- Initialization
 			create log.make
 			create speech.make
 			create files.make
+			create keyboard.make
+			create controls.make (create {PHONE_CONTROL_LINK}.make)
 		ensure
 			claimed: handle_exists
 			nothing_yet: last_event.is_none
@@ -132,6 +134,25 @@ feature -- Events
 			non_negative: Result >= 0
 		end
 
+	run_controls
+			-- Deliver events to `controls' until Android ends the app. Apps with a
+			-- loop of their own call `wait_for_event' and `controls.dispatch' instead.
+		require
+			not_destroyed: not lifecycle.is_destroyed
+			no_open_frame: not screen.in_frame
+		do
+			from until lifecycle.is_destroyed loop
+				poll_event (0)
+				if last_event.is_none then
+					controls.repaint_waiting
+					wait_for_event
+				end
+				controls.dispatch (last_event)
+			end
+		ensure
+			ended: lifecycle.is_destroyed
+		end
+
 feature -- State
 
 	lifecycle: PHONE_LIFECYCLE
@@ -155,6 +176,8 @@ feature -- Services
 	log: PHONE_LOG
 	speech: PHONE_SPEECH
 	files: PHONE_FILES
+	keyboard: PHONE_KEYBOARD
+	controls: PHONE_CONTROLS
 
 feature -- Behavior
 
@@ -219,6 +242,8 @@ feature {NONE} -- Implementation
 				create e.make_key (k, c_cur_code.max (1), c_cur_time.max (0))
 			elseif is_service_kind (k) then
 				create e.make_service (k, c_cur_code.max (0), current_text, c_cur_time.max (0))
+			elseif is_control_kind (k) then
+				create e.make_control (k, c_cur_id.max (1), c_cur_x, c_cur_y, current_text, c_cur_time.max (0))
 			else
 				check lifecycle_kind: is_lifecycle_kind (k) end
 				create e.make_lifecycle (k, c_cur_time.max (0))
@@ -227,6 +252,7 @@ feature {NONE} -- Implementation
 			touches.apply (e)
 			speech.apply (e)
 			files.apply (e)
+			keyboard.apply (e)
 			if is_metric_kind (k) then
 				metrics.refresh
 			end
