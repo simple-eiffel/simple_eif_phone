@@ -45,6 +45,15 @@ feature -- Codes: key
 	Kind_key_down: INTEGER = 30
 	Kind_key_up: INTEGER = 31
 
+feature -- Codes: services
+
+	Kind_speech_ready: INTEGER = 40
+	Kind_speech_failed: INTEGER = 41
+	Kind_speech_done: INTEGER = 42
+	Kind_file_picked: INTEGER = 43
+	Kind_file_cancelled: INTEGER = 44
+	Kind_file_failed: INTEGER = 45
+
 feature -- Families
 
 	is_lifecycle_kind (a_k: INTEGER): BOOLEAN
@@ -68,10 +77,28 @@ feature -- Families
 	is_valid_kind (a_k: INTEGER): BOOLEAN
 			-- Is `a_k' none or a member of exactly one family?
 		do
-			Result := a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k)
+			Result := a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k) or is_service_kind (a_k)
 		ensure
-			definition: Result = (a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k))
+			definition: Result = (a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k) or is_service_kind (a_k))
 			families_disjoint: (is_lifecycle_kind (a_k).to_integer + is_touch_kind (a_k).to_integer + is_key_kind (a_k).to_integer) <= 1
+		end
+
+	is_speech_kind (a_k: INTEGER): BOOLEAN
+			-- Is `a_k' a read-aloud result?
+		do
+			Result := Kind_speech_ready <= a_k and a_k <= Kind_speech_done
+		end
+
+	is_file_kind (a_k: INTEGER): BOOLEAN
+			-- Is `a_k' a file picker result?
+		do
+			Result := Kind_file_picked <= a_k and a_k <= Kind_file_failed
+		end
+
+	is_service_kind (a_k: INTEGER): BOOLEAN
+			-- Is `a_k' a result from a Java service?
+		do
+			Result := is_speech_kind (a_k) or is_file_kind (a_k)
 		end
 
 feature -- Names
@@ -102,6 +129,12 @@ feature -- Names
 			when Kind_touch_cancel then Result := "touch_cancel"
 			when Kind_key_down then Result := "key_down"
 			when Kind_key_up then Result := "key_up"
+			when Kind_speech_ready then Result := "speech_ready"
+			when Kind_speech_failed then Result := "speech_failed"
+			when Kind_speech_done then Result := "speech_done"
+			when Kind_file_picked then Result := "file_picked"
+			when Kind_file_cancelled then Result := "file_cancelled"
+			when Kind_file_failed then Result := "file_failed"
 			else
 				Result := "none"
 			end

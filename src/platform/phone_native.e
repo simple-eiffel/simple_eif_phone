@@ -53,6 +53,26 @@ feature {NONE} -- Events
 	c_back_policy: INTEGER
 		external "C inline use %"sephone.h%"" alias "return (EIF_INTEGER) sephone_back_policy();" end
 
+	c_cur_text: POINTER
+		external "C inline use %"sephone.h%"" alias "return (EIF_POINTER) sephone_cur_text();" end
+
+feature {NONE} -- Java services
+
+	c_helper_present: INTEGER
+		external "C inline use %"sephone.h%"" alias "return (EIF_INTEGER) sephone_helper_present();" end
+
+	c_speech_start
+		external "C inline use %"sephone.h%"" alias "sephone_speech_start();" end
+
+	c_speak (a_text, a_language: POINTER)
+		external "C inline use %"sephone.h%"" alias "sephone_speak((const char *)$a_text, (const char *)$a_language);" end
+
+	c_speech_stop
+		external "C inline use %"sephone.h%"" alias "sephone_speech_stop();" end
+
+	c_pick_file (a_type: POINTER)
+		external "C inline use %"sephone.h%"" alias "sephone_pick_file((const char *)$a_type);" end
+
 feature {NONE} -- Behavior
 
 	c_set_back_policy (a_policy: INTEGER)

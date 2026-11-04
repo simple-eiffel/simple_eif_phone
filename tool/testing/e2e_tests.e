@@ -170,6 +170,7 @@ feature -- Build (AC-2, AC-4, FR-008, FR-011)
 			l_manifest := read_text (d.extended ("build").extended ("AndroidManifest.xml"))
 			assert ("hasCode true", l_manifest.has_substring ("android:hasCode=%"true%""))
 			assert ("helper activity", l_manifest.has_substring ("EifPhoneActivity"))
+			assert ("speech engine visible", l_manifest.has_substring ("android.intent.action.TTS_SERVICE"))
 		end
 
 	test_q12_icon_and_permissions_in_manifest

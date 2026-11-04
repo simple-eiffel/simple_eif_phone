@@ -38,6 +38,8 @@ feature {NONE} -- Initialization
 			create storage.make
 			create assets.make
 			create log.make
+			create speech.make
+			create files.make
 		ensure
 			claimed: handle_exists
 			nothing_yet: last_event.is_none
@@ -151,6 +153,8 @@ feature -- Services
 	storage: PHONE_STORAGE
 	assets: PHONE_ASSETS
 	log: PHONE_LOG
+	speech: PHONE_SPEECH
+	files: PHONE_FILES
 
 feature -- Behavior
 
@@ -213,16 +217,33 @@ feature {NONE} -- Implementation
 				create e.make_touch (k, c_cur_id.max (0), c_cur_x, c_cur_y, c_cur_time.max (0))
 			elseif is_key_kind (k) then
 				create e.make_key (k, c_cur_code.max (1), c_cur_time.max (0))
+			elseif is_service_kind (k) then
+				create e.make_service (k, c_cur_code.max (0), current_text, c_cur_time.max (0))
 			else
 				check lifecycle_kind: is_lifecycle_kind (k) end
 				create e.make_lifecycle (k, c_cur_time.max (0))
 			end
 			lifecycle.apply (e)
 			touches.apply (e)
+			speech.apply (e)
+			files.apply (e)
 			if is_metric_kind (k) then
 				metrics.refresh
 			end
 			last_event := e
+		end
+
+	current_text: STRING_32
+			-- The text of the event just taken, decoded from UTF-8.
+		local
+			l_bytes: STRING_8
+		do
+			if c_cur_text = default_pointer then
+				create Result.make_empty
+			else
+				create l_bytes.make_from_c (c_cur_text)
+				Result := {UTF_CONVERTER}.utf_8_string_8_to_string_32 (l_bytes)
+			end
 		end
 
 invariant

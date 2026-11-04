@@ -42,6 +42,10 @@
 <li><a href="#phone_storage">PHONE_STORAGE</a></li>
 <li><a href="#phone_assets">PHONE_ASSETS</a></li>
 <li><a href="#phone_log">PHONE_LOG</a></li>
+<li><a href="#phone_speech">PHONE_SPEECH</a></li>
+<li><a href="#phone_speech_state">PHONE_SPEECH_STATE</a></li>
+<li><a href="#phone_files">PHONE_FILES</a></li>
+<li><a href="#phone_pick_state">PHONE_PICK_STATE</a></li>
 <li><a href="#phone_event">PHONE_EVENT</a></li>
 <li><a href="#phone_event_kind">PHONE_EVENT_KIND</a></li>
 <li><a href="#phone_key_codes">PHONE_KEY_CODES</a></li>
@@ -122,6 +126,10 @@ drops_monotonic: dropped_event_count &gt;= old dropped_event_count</div>
 <div class="feature"><h4>assets: PHONE_ASSETS</h4>
 </div>
 <div class="feature"><h4>log: PHONE_LOG</h4>
+</div>
+<div class="feature"><h4>speech: PHONE_SPEECH</h4>
+</div>
+<div class="feature"><h4>files: PHONE_FILES</h4>
 </div>
 <h3>Behavior</h3>
 <div class="feature"><h4>back_policy: INTEGER</h4>
@@ -313,6 +321,118 @@ short: a_tag.count &lt;= 23</div>
 </div>
 <h3>Invariant</h3><div class="clause">tag_ok: not tag.is_empty and tag.count &lt;= 23</div>
 </section>
+<section id="phone_speech"><h2>PHONE_SPEECH</h2><p>Read text aloud. Needs `java_helper = true&#x27; in eifphone.toml. Call `start&#x27;, and wait for Kind_speech_ready or Kind_speech_failed. Then `speak&#x27;. Kind_speech_done says when it ends.</p>
+<h3>Status</h3>
+<div class="feature"><h4>is_available: BOOLEAN</h4>
+<p>Does this app carry the Java helper?</p>
+</div>
+<h3>Commands</h3>
+<div class="feature"><h4>start</h4>
+<p>Ask for the speech engine. The answer arrives as an event.</p>
+<p><strong>Requires</strong></p><div class="clause">available: is_available
+idle: not is_starting and not is_ready</div>
+<p><strong>Ensures</strong></p><div class="clause">starting: is_starting</div>
+</div>
+<div class="feature"><h4>speak (a_text: READABLE_STRING_32; a_language: READABLE_STRING_8)</h4>
+<p>Read `a_text&#x27; aloud in `a_language&#x27;, such as &quot;en-US&quot; or &quot;he-IL&quot;. Anything already being read stops first.</p>
+<p><strong>Requires</strong></p><div class="clause">ready: is_ready
+text_given: not a_text.is_empty
+language_given: not a_language.is_empty</div>
+<p><strong>Ensures</strong></p><div class="clause">speaking: is_speaking</div>
+</div>
+<div class="feature"><h4>stop</h4>
+<p>Stop reading.</p>
+<p><strong>Requires</strong></p><div class="clause">ready: is_ready</div>
+</div>
+</section>
+<section id="phone_speech_state"><h2>PHONE_SPEECH_STATE</h2><p>Where read-aloud stands: starting, ready, speaking, and why it last failed. Pure Eiffel, so its rules run on a PC too. Results reach it as events, through `apply&#x27;.</p>
+<h3>Status</h3>
+<div class="feature"><h4>is_starting: BOOLEAN</h4>
+<p>Has the engine been asked for, with no answer yet?</p>
+</div>
+<div class="feature"><h4>is_ready: BOOLEAN</h4>
+<p>Can the phone speak now?</p>
+</div>
+<div class="feature"><h4>is_speaking: BOOLEAN</h4>
+<p>Is an utterance under way?</p>
+</div>
+<div class="feature"><h4>last_failure: INTEGER</h4>
+<p>Why it last failed: 0, or one of the Failure_ codes.</p>
+</div>
+<h3>Codes</h3>
+<div class="feature"><h4>Failure_no_engine: INTEGER = 1</h4>
+<p>This phone has no speech engine, or it would not start.</p>
+</div>
+<div class="feature"><h4>Failure_language: INTEGER = 2</h4>
+<p>The engine cannot speak that language.</p>
+</div>
+<div class="feature"><h4>Failure_utterance: INTEGER = 3</h4>
+<p>The engine failed part way.</p>
+</div>
+<div class="feature"><h4>Done_finished: INTEGER = 0</h4>
+<p>The utterance reached its end.</p>
+</div>
+<div class="feature"><h4>Done_stopped: INTEGER = 1</h4>
+<p>`stop&#x27; ended the utterance.</p>
+</div>
+<h3>Events</h3>
+<div class="feature"><h4>apply (a_event: PHONE_EVENT)</h4>
+<p>Take in `a_event&#x27;. Events from other services change nothing.</p>
+<p><strong>Ensures</strong></p><div class="clause">ready_on_ready: a_event.kind = Kind_speech_ready implies is_ready
+quiet_on_done: a_event.kind = Kind_speech_done implies not is_speaking
+quiet_on_failure: a_event.kind = Kind_speech_failed implies not is_speaking
+failure_kept: a_event.kind = Kind_speech_failed implies last_failure = a_event.service_code
+others_change_nothing: not is_speech_kind (a_event.kind) implies
+(is_starting = old is_starting and is_ready = old is_ready and is_speaking = old is_speaking and last_failure = old last_failure)</div>
+</div>
+<h3>Invariant</h3><div class="clause">starting_is_not_ready: is_starting implies not is_ready
+speaking_needs_ready: is_speaking implies is_ready
+failure_known: last_failure &gt;= 0</div>
+</section>
+<section id="phone_files"><h2>PHONE_FILES</h2><p>Let the person choose a file. Needs `java_helper = true&#x27; in eifphone.toml. Call `pick&#x27;, then wait for Kind_file_picked, Kind_file_cancelled or Kind_file_failed. A chosen file is copied into the app&#x27;s cache, so `last_path&#x27; is a plain file the app can open.</p>
+<h3>Status</h3>
+<div class="feature"><h4>is_available: BOOLEAN</h4>
+<p>Does this app carry the Java helper?</p>
+</div>
+<div class="feature"><h4>is_valid_type (a_type: READABLE_STRING_8): BOOLEAN</h4>
+<p>Is `a_type&#x27; a media type, such as &quot;text/plain&quot; or &quot;*/*&quot;?</p>
+</div>
+<h3>Commands</h3>
+<div class="feature"><h4>pick (a_type: READABLE_STRING_8)</h4>
+<p>Open the picker for files of `a_type&#x27;. The result arrives as an event.</p>
+<p><strong>Requires</strong></p><div class="clause">available: is_available
+closed: not is_picking
+valid_type: is_valid_type (a_type)</div>
+<p><strong>Ensures</strong></p><div class="clause">open: is_picking</div>
+</div>
+</section>
+<section id="phone_pick_state"><h2>PHONE_PICK_STATE</h2><p>Where the file picker stands: open or not, and how the last pick ended. Pure Eiffel, so its rules run on a PC too. Results reach it as events, through `apply&#x27;.</p>
+<h3>Status</h3>
+<div class="feature"><h4>is_picking: BOOLEAN</h4>
+<p>Is the picker open?</p>
+</div>
+<div class="feature"><h4>was_cancelled: BOOLEAN</h4>
+<p>Did the last pick end with nothing chosen?</p>
+</div>
+<h3>Access</h3>
+<div class="feature"><h4>last_path: detachable STRING_32</h4>
+<p>The chosen file, copied into the app&#x27;s cache, if the last pick found one.</p>
+</div>
+<div class="feature"><h4>last_error: STRING_32</h4>
+<p>Why the last pick failed; empty if it did not.</p>
+</div>
+<h3>Events</h3>
+<div class="feature"><h4>apply (a_event: PHONE_EVENT)</h4>
+<p>Take in `a_event&#x27;. Events from other services change nothing. A pick can end after a restart, so a result is taken even when `is_picking&#x27; is False.</p>
+<p><strong>Ensures</strong></p><div class="clause">closed_on_result: is_file_kind (a_event.kind) implies not is_picking
+path_on_picked: a_event.kind = Kind_file_picked implies attached last_path
+no_path_otherwise: (a_event.kind = Kind_file_cancelled or a_event.kind = Kind_file_failed) implies last_path = Void
+cancelled_noted: a_event.kind = Kind_file_cancelled implies was_cancelled
+others_change_nothing: not is_file_kind (a_event.kind) implies is_picking = old is_picking</div>
+</div>
+<h3>Invariant</h3><div class="clause">open_has_no_result: is_picking implies (last_path = Void and last_error.is_empty and not was_cancelled)
+one_outcome: not (was_cancelled and attached last_path)</div>
+</section>
 <section id="phone_event"><h2>PHONE_EVENT</h2><p>One thing that happened on the phone: a lifecycle change, a touch or a key. Immutable. Exactly one family per event (or none, for a timed poll that ran out). Touch coordinates are window pixels, rounded; they may lie outside the window while a finger drags off the edge.</p>
 <h3>Access</h3>
 <div class="feature"><h4>kind: INTEGER</h4>
@@ -330,6 +450,12 @@ short: a_tag.count &lt;= 23</div>
 <div class="feature"><h4>key_code: INTEGER</h4>
 <p>Android key code for key events; 0 otherwise.</p>
 </div>
+<div class="feature"><h4>service_code: INTEGER</h4>
+<p>For service results, the reason or outcome code; 0 otherwise.</p>
+</div>
+<div class="feature"><h4>text: READABLE_STRING_32</h4>
+<p>For service results, the path or message; empty otherwise.</p>
+</div>
 <h3>Status</h3>
 <div class="feature"><h4>is_none: BOOLEAN</h4>
 <p>Is this &quot;no event&quot;?</p>
@@ -343,6 +469,9 @@ short: a_tag.count &lt;= 23</div>
 <div class="feature"><h4>is_key: BOOLEAN</h4>
 <p>Is this a key event?</p>
 </div>
+<div class="feature"><h4>is_service: BOOLEAN</h4>
+<p>Is this a result from a Java service?</p>
+</div>
 <h3>Output</h3>
 <div class="feature"><h4>out_line: STRING_8</h4>
 <p>One-line description, e.g. &quot;touch_down id=0 x=12 y=40 t=1234&quot;.</p>
@@ -350,7 +479,7 @@ short: a_tag.count &lt;= 23</div>
 one_line: not Result.has (&#x27;%N&#x27;)</div>
 </div>
 <h3>Invariant</h3><div class="clause">valid_kind: is_valid_kind (kind)
-one_family: is_none.to_integer + is_lifecycle.to_integer + is_touch.to_integer + is_key.to_integer = 1
+one_family: is_none.to_integer + is_lifecycle.to_integer + is_touch.to_integer + is_key.to_integer + is_service.to_integer = 1
 touch_has_id: is_touch implies pointer_id &gt;= 0
 non_touch_no_id: not is_touch implies pointer_id = -1
 key_has_code: is_key = (key_code &gt; 0)
@@ -405,6 +534,19 @@ time_non_negative: time_ms &gt;= 0</div>
 </div>
 <div class="feature"><h4>Kind_key_up: INTEGER = 31</h4>
 </div>
+<h3>Codes: services</h3>
+<div class="feature"><h4>Kind_speech_ready: INTEGER = 40</h4>
+</div>
+<div class="feature"><h4>Kind_speech_failed: INTEGER = 41</h4>
+</div>
+<div class="feature"><h4>Kind_speech_done: INTEGER = 42</h4>
+</div>
+<div class="feature"><h4>Kind_file_picked: INTEGER = 43</h4>
+</div>
+<div class="feature"><h4>Kind_file_cancelled: INTEGER = 44</h4>
+</div>
+<div class="feature"><h4>Kind_file_failed: INTEGER = 45</h4>
+</div>
 <h3>Families</h3>
 <div class="feature"><h4>is_lifecycle_kind (a_k: INTEGER): BOOLEAN</h4>
 <p>Is `a_k&#x27; a lifecycle code?</p>
@@ -417,8 +559,17 @@ time_non_negative: time_ms &gt;= 0</div>
 </div>
 <div class="feature"><h4>is_valid_kind (a_k: INTEGER): BOOLEAN</h4>
 <p>Is `a_k&#x27; none or a member of exactly one family?</p>
-<p><strong>Ensures</strong></p><div class="clause">definition: Result = (a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k))
+<p><strong>Ensures</strong></p><div class="clause">definition: Result = (a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k) or is_service_kind (a_k))
 families_disjoint: (is_lifecycle_kind (a_k).to_integer + is_touch_kind (a_k).to_integer + is_key_kind (a_k).to_integer) &lt;= 1</div>
+</div>
+<div class="feature"><h4>is_speech_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; a read-aloud result?</p>
+</div>
+<div class="feature"><h4>is_file_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; a file picker result?</p>
+</div>
+<div class="feature"><h4>is_service_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; a result from a Java service?</p>
 </div>
 <h3>Names</h3>
 <div class="feature"><h4>kind_name (a_k: INTEGER): STRING_8</h4>

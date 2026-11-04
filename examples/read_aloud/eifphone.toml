@@ -1,0 +1,15 @@
+[app]
+id = "io.github.ljr1981.eifphone.readaloud"
+label = "Eiffel Read Aloud"
+version_code = 1
+version_name = "0.1.0"
+
+[eiffel]
+ecf = "read_aloud.ecf"
+target = "read_aloud"
+
+[android]
+abis = ["arm64-v8a", "x86_64"]
+min_sdk = 26
+target_sdk = 36
+java_helper = true

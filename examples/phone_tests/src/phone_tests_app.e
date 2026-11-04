@@ -49,6 +49,12 @@ feature {NONE} -- Initialization
 			t.run ("home_and_return", agent home_and_return)
 			t.run ("rotation", agent rotation)
 			t.run ("window_storm", agent window_storm)
+			t.run ("java_helper_present", agent java_helper_present)
+			t.run ("speech_answers", agent speech_answers)
+			t.run ("speech_language_refused", agent speech_language_refused)
+			t.run ("speech_stop_ends_it", agent speech_stop_ends_it)
+			t.run ("file_pick_cancelled", agent file_pick_cancelled)
+			t.run ("file_pick_chosen", agent file_pick_chosen)
 			t.run ("back_policy_app", agent back_policy_app)
 			t.finish
 				-- Back under the system policy: `destroyed' must arrive cleanly.
@@ -66,7 +72,7 @@ feature {NONE} -- Access
 	seen: ARRAYED_LIST [INTEGER]
 			-- Kinds delivered so far by `wait_for'.
 
-	Total: INTEGER = 21
+	Total: INTEGER = 27
 
 feature {NONE} -- Self-contained tests
 
@@ -383,6 +389,113 @@ feature {NONE} -- Self-contained tests
 		end
 
 feature {NONE} -- Driven tests
+
+	java_helper_present: BOOLEAN
+			-- This app carries the helper, so both services are on offer.
+		do
+			Result := phone.speech.is_available and phone.files.is_available
+		end
+
+	wait_any (a_first, a_second, a_ms: INTEGER)
+			-- Take events until a new one of two kinds arrives, or `a_ms' of quiet has passed.
+			-- `last_event' on entry does not count: it is the answer to something earlier.
+		local
+			l_left: INTEGER
+			l_seen: BOOLEAN
+		do
+			from
+				l_left := a_ms
+			until
+				l_left <= 0 or l_seen
+			loop
+				phone.poll_event (200)
+				if phone.last_event.is_none then
+					l_left := l_left - 200
+				else
+					l_seen := phone.last_event.kind = a_first or phone.last_event.kind = a_second
+				end
+			end
+		end
+
+	speech_answers: BOOLEAN
+			-- The engine answers either way. If there is one, it reads a line to the end.
+		do
+			phone.speech.start
+			wait_any (Kind_speech_ready, Kind_speech_failed, 30_000)
+			if phone.speech.is_ready then
+				phone.log.info ("tests: speech engine ready")
+				phone.speech.speak ({STRING_32} "one two three", "en-US")
+				wait_any (Kind_speech_done, Kind_speech_failed, 30_000)
+				phone.log.info ("tests: speech ended, failure code " + phone.speech.last_failure.out)
+				Result := not phone.speech.is_speaking
+			else
+				phone.log.info ("tests: no speech engine, failure code " + phone.speech.last_failure.out)
+				Result := phone.speech.last_failure = phone.speech.Failure_no_engine
+			end
+		end
+
+	speech_language_refused: BOOLEAN
+			-- A language the engine lacks is a named failure, and the engine stays usable.
+		do
+			if phone.speech.is_ready then
+				phone.speech.speak ({STRING_32} "one", "zz-ZZ")
+				wait_any (Kind_speech_failed, Kind_speech_done, 15_000)
+				phone.log.info ("tests: refused language gave failure code " + phone.speech.last_failure.out)
+				Result := phone.speech.last_failure = phone.speech.Failure_language
+					and phone.speech.is_ready and not phone.speech.is_speaking
+			else
+				Result := True
+			end
+		end
+
+	speech_stop_ends_it: BOOLEAN
+			-- `stop' ends a long utterance, and says it was stopped.
+		do
+			if phone.speech.is_ready then
+				phone.speech.speak ({STRING_32} "This sentence is long enough that there is plenty of time to stop it before it reaches its end, and then some more words after that.", "en-US")
+				phone.poll_event (300)
+				phone.speech.stop
+				wait_any (Kind_speech_done, Kind_speech_failed, 15_000)
+				phone.log.info ("tests: stop gave code " + phone.last_event.service_code.out)
+				Result := phone.last_event.kind = Kind_speech_done and phone.last_event.service_code = phone.speech.Done_stopped
+					and not phone.speech.is_speaking
+			else
+				Result := True
+			end
+		end
+
+	file_pick_cancelled: BOOLEAN
+			-- Backing out of the picker is an answer, not a hang.
+		do
+			phone.files.pick ("*/*")
+			t.step ("pickcancel")
+			wait_any (Kind_file_cancelled, Kind_file_failed, 40_000)
+			Result := phone.files.was_cancelled and not phone.files.is_picking
+			wait_for (Kind_focus_gained, 10_000)
+		end
+
+	file_pick_chosen: BOOLEAN
+			-- A chosen file arrives as a plain file holding the same text.
+		local
+			f: PLAIN_TEXT_FILE
+		do
+			phone.files.pick ("*/*")
+			t.step ("pickchoose")
+			wait_any (Kind_file_picked, Kind_file_failed, 60_000)
+			if attached phone.files.last_path as al_path then
+				phone.log.info ("tests: picked " + al_path.to_string_8)
+				create f.make_with_name (al_path)
+				if f.exists then
+					f.open_read
+					f.read_line
+					Result := f.last_string.same_string ("eifphone pick test")
+					f.close
+				end
+			else
+				phone.log.info ("tests: pick error " + phone.files.last_error.to_string_8)
+			end
+			wait_for (Kind_focus_gained, 10_000)
+		end
 
 	tap_arrives: BOOLEAN
 			-- A tap gives down, then up, with one id, and the finger is gone after.

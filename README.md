@@ -14,9 +14,9 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.2.0: early, working, not yet widely used.**
+**0.3.0: early, working, not yet widely used.**
 
-- 98 tool tests, 33 logic tests and 21 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
+- 98 tool tests, 39 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
 - On a real ARM phone, the touch pad demo took five fingers at once, and a full screen went up in 6.5 ms at worst.
 - The tool runs on Windows. Apps run on Android 8.0 or later, on ARM64 and x86_64.
 - See [known limitations](https://simple-eiffel.github.io/simple_eif_phone/#limits) before you rely on it.
@@ -50,6 +50,7 @@ For complete documentation, see [the docs site](https://simple-eiffel.github.io/
 - One command from Eiffel source to a signed, aligned APK, for both processor types
 - The phone in phone terms: app life, multi-touch, keys, screen, sizes, folders, packed files, log
 - SQLite on the phone through `simple_sql`, full-text search included
+- Read-aloud and the file picker, Hebrew included, through a small fixed Java helper
 - Contracts throughout, with a fast build for live drawing and a checked build for development
 - On-device test runner, and clear errors that name the failed stage
 
