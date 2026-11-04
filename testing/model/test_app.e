@@ -31,6 +31,7 @@ feature {NONE} -- Test Runners
 			l_lib_tests: LIB_TESTS
 			l_hostile: ADVERSARIAL_TESTS
 			l_consumer: TEST_SCOOP_CONSUMER
+			l_controls: TEST_CONTROLS
 		do
 			create l_lib_tests
 			run_test (agent l_lib_tests.test_kind_families_are_disjoint, "test_kind_families_are_disjoint")
@@ -72,6 +73,25 @@ feature {NONE} -- Test Runners
 			run_test (agent l_hostile.test_a_event_largest_time, "test_a_event_largest_time")
 			run_test (agent l_hostile.test_a_rect_empty_at_a_point, "test_a_rect_empty_at_a_point")
 			run_test (agent l_hostile.test_a_every_kind_has_a_name, "test_a_every_kind_has_a_name")
+			create l_controls
+			run_test (agent l_controls.test_ids_and_orders, "test_ids_and_orders")
+			run_test (agent l_controls.test_growing_share, "test_growing_share")
+			run_test (agent l_controls.test_button_click, "test_button_click")
+			run_test (agent l_controls.test_event_for_nobody_is_ignored, "test_event_for_nobody_is_ignored")
+			run_test (agent l_controls.test_text_box_follows_typing, "test_text_box_follows_typing")
+			run_test (agent l_controls.test_toggle_and_slider, "test_toggle_and_slider")
+			run_test (agent l_controls.test_choice_ignores_android_opening_report, "test_choice_ignores_android_opening_report")
+			run_test (agent l_controls.test_radio_group, "test_radio_group")
+			run_test (agent l_controls.test_list_sends_a_block, "test_list_sends_a_block")
+			run_test (agent l_controls.test_list_last_block_is_short, "test_list_last_block_is_short")
+			run_test (agent l_controls.test_list_selection, "test_list_selection")
+			run_test (agent l_controls.test_canvas_paints_when_ready, "test_canvas_paints_when_ready")
+			run_test (agent l_controls.test_canvas_finger, "test_canvas_finger")
+			run_test (agent l_controls.test_repaint_requests_collapse, "test_repaint_requests_collapse")
+			run_test (agent l_controls.test_confirm_answers_once, "test_confirm_answers_once")
+			run_test (agent l_controls.test_general_route, "test_general_route")
+			run_test (agent l_controls.test_discard, "test_discard")
+			run_test (agent l_controls.test_back, "test_back")
 			create l_consumer
 			run_test (agent l_consumer.test_scoop_compatibility, "test_scoop_compatibility")
 		end

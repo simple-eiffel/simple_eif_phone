@@ -1,0 +1,15 @@
+[app]
+id = "io.github.ljr1981.eifphone.controls"
+label = "Eiffel Controls"
+version_code = 1
+version_name = "0.1.0"
+
+[eiffel]
+ecf = "controls_demo.ecf"
+target = "controls_demo"
+
+[android]
+abis = ["arm64-v8a", "x86_64"]
+min_sdk = 26
+target_sdk = 36
+controls = true

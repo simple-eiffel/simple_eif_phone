@@ -22,6 +22,7 @@
 		<library name="simple_mml" location="$SIMPLE_EIFFEL/simple_mml/simple_mml.ecf"/>
 		<cluster name="model" location=".\src\model\" recursive="true"/>
 		<cluster name="platform" location=".\src\platform\" recursive="true"/>
+		<cluster name="controls" location=".\src\controls\" recursive="true"/>
 	</target>
 	<target name="simple_eif_phone_model_tests">
 		<description>Pure model classes only (no C), tested on the PC under ISE; the same target also builds under gec.</description>
@@ -45,6 +46,7 @@
 		<library name="simple_testing" location="$SIMPLE_EIFFEL/simple_testing/simple_testing.ecf"/>
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
 		<cluster name="model" location=".\src\model\" recursive="true"/>
+		<cluster name="controls" location=".\src\controls\"/>
 		<cluster name="tests" location=".\testing\model\" recursive="true"/>
 	</target>
 </system>

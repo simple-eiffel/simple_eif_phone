@@ -19,7 +19,8 @@ create
 	make_lifecycle,
 	make_touch,
 	make_key,
-	make_service
+	make_service,
+	make_control
 
 feature {NONE} -- Initialization
 
@@ -118,6 +119,31 @@ feature {NONE} -- Initialization
 			no_position: x = 0 and y = 0
 		end
 
+	make_control (a_kind, a_id, a_x, a_y: INTEGER; a_text: READABLE_STRING_32; a_time: INTEGER)
+			-- Event `a_kind' from control `a_id'. `a_x', `a_y' and `a_text' mean what the kind says.
+		require
+			control_kind: is_control_kind (a_kind)
+			id_ok: a_id > 0
+			time_ok: a_time >= 0
+		do
+			kind := a_kind
+			control_id := a_id
+			x := a_x
+			y := a_y
+			text := a_text
+			time_ms := a_time
+			pointer_id := -1
+		ensure
+			kind_set: kind = a_kind
+			id_set: control_id = a_id
+			x_set: x = a_x
+			y_set: y = a_y
+			text_set: text = a_text
+			time_set: time_ms = a_time
+			no_pointer: pointer_id = -1
+			no_key: key_code = 0
+		end
+
 feature -- Access
 
 	kind: INTEGER
@@ -140,8 +166,12 @@ feature -- Access
 	service_code: INTEGER
 			-- For service results, the reason or outcome code; 0 otherwise.
 
+	control_id: INTEGER
+			-- For control events, which control; 0 otherwise.
+
 	text: READABLE_STRING_32
-			-- For service results, the path or message; empty otherwise.
+			-- For service results, the path or message; for control events, what
+			-- the control has to say; empty otherwise.
 
 feature -- Status
 
@@ -175,6 +205,12 @@ feature -- Status
 			Result := is_service_kind (kind)
 		end
 
+	is_control: BOOLEAN
+			-- Is this from one of Android's controls?
+		do
+			Result := is_control_kind (kind)
+		end
+
 feature {NONE} -- Implementation
 
 	No_text: STRING_32
@@ -195,6 +231,8 @@ feature -- Output
 				Result.append (" code=" + key_code.out)
 			elseif is_service then
 				Result.append (" code=" + service_code.out)
+			elseif is_control then
+				Result.append (" control=" + control_id.out + " x=" + x.out + " y=" + y.out)
 			end
 			Result.append (" t=" + time_ms.out)
 		ensure
@@ -204,11 +242,12 @@ feature -- Output
 
 invariant
 	valid_kind: is_valid_kind (kind)
-	one_family: is_none.to_integer + is_lifecycle.to_integer + is_touch.to_integer + is_key.to_integer + is_service.to_integer = 1
+	one_family: is_none.to_integer + is_lifecycle.to_integer + is_touch.to_integer + is_key.to_integer + is_service.to_integer + is_control.to_integer = 1
 	touch_has_id: is_touch implies pointer_id >= 0
 	non_touch_no_id: not is_touch implies pointer_id = -1
 	key_has_code: is_key = (key_code > 0)
-	non_touch_no_position: not is_touch implies (x = 0 and y = 0)
+	non_touch_no_position: not is_touch and not is_control implies (x = 0 and y = 0)
+	control_has_id: is_control = (control_id > 0)
 	time_non_negative: time_ms >= 0
 
 end

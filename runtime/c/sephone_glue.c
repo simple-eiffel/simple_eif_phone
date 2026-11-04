@@ -24,6 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "sephone.h"
+#include "sephone_bridge.h"
 
 extern int GE_main(int argc, char **argv);
 
@@ -37,7 +38,7 @@ typedef struct {
 
 /* What Java has sent and the Eiffel thread has not yet taken. See sephone.h. */
 typedef struct sephone_note {
-	int kind, code;
+	int kind, code, id, x, y;
 	char *text;
 	struct sephone_note *next;
 } sephone_note;
@@ -269,7 +270,7 @@ static void sephone_drain_mail(void)
 	while (n) {
 		sephone_note *next = n->next;
 		s_push_text = n->text;
-		sephone_push(n->kind, sephone_ms_from_ns(sephone_now_ns()), -1, 0, 0, n->code);
+		sephone_push(n->kind, sephone_ms_from_ns(sephone_now_ns()), n->id, n->x, n->y, n->code);
 		free(n);
 		n = next;
 	}
@@ -316,28 +317,45 @@ int sephone_delivery_count(void) { return s_delivered; }
 
 /* ------------------------------------------------------- Java services */
 
-/* Registered on EifPhoneActivity. Runs on Java's threads: mailbox only. */
-static void JNICALL sephone_java_event(JNIEnv *env, jclass cls, jint kind, jint code, jbyteArray text)
+/* Any thread: the mailbox is all it touches. */
+void sephone_mail(int kind, int code, int id, int x, int y, char *text)
 {
 	sephone_note *n = (sephone_note *)calloc(1, sizeof(sephone_note));
-	jsize count = text ? (*env)->GetArrayLength(env, text) : 0;
-	(void)cls;
-	if (!n) return;
-	n->kind = (int)kind;
-	n->code = (int)code;
-	if (count > 0) {
-		n->text = (char *)malloc((size_t)count + 1);
-		if (n->text) {
-			(*env)->GetByteArrayRegion(env, text, 0, count, (jbyte *)n->text);
-			n->text[count] = 0;
-		}
+	if (!n) {
+		free(text);
+		return;
 	}
+	n->kind = kind;
+	n->code = code;
+	n->id = id;
+	n->x = x;
+	n->y = y;
+	n->text = text;
 	pthread_mutex_lock(&s_mail_lock);
 	if (s_mail_last) s_mail_last->next = n;
 	else s_mail_first = n;
 	s_mail_last = n;
 	pthread_mutex_unlock(&s_mail_lock);
 	if (s_app) ALooper_wake(s_app->looper);
+}
+
+jobject sephone_activity(void) { return s_app->activity->clazz; }
+JNIEnv *sephone_thread_env(void) { return s_env; }
+
+/* Registered on EifPhoneActivity. Runs on Java's threads: mailbox only. */
+static void JNICALL sephone_java_event(JNIEnv *env, jclass cls, jint kind, jint code, jbyteArray text)
+{
+	jsize count = text ? (*env)->GetArrayLength(env, text) : 0;
+	char *copy = NULL;
+	(void)cls;
+	if (count > 0) {
+		copy = (char *)malloc((size_t)count + 1);
+		if (copy) {
+			(*env)->GetByteArrayRegion(env, text, 0, count, (jbyte *)copy);
+			copy[count] = 0;
+		}
+	}
+	sephone_mail((int)kind, (int)code, -1, 0, 0, copy);
 }
 
 static jmethodID sephone_helper_method(JNIEnv *env, jclass cls, const char *name, const char *sig)
@@ -366,6 +384,7 @@ static void sephone_java_setup(void)
 		if ((*env)->RegisterNatives(env, cls, &native, 1) == 0) s_helper = 1;
 		else (*env)->ExceptionClear(env);
 	}
+	if (s_helper) sephone_controls_setup(env, cls);
 	(*env)->DeleteLocalRef(env, cls);
 }
 

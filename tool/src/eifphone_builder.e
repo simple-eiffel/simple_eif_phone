@@ -205,7 +205,9 @@ feature -- Manifest
 		local
 			l_activity: STRING_32
 		do
-			if project.uses_java_helper then
+			if project.uses_controls then
+				l_activity := Controls_activity.to_string_32
+			elseif project.uses_java_helper then
 				l_activity := Helper_activity.to_string_32
 			else
 				l_activity := {STRING_32} "android.app.NativeActivity"
@@ -304,6 +306,8 @@ feature -- Names
 
 	Helper_activity: STRING_8 = "io.github.simple_eiffel.eifphone.EifPhoneActivity"
 
+	Controls_activity: STRING_8 = "io.github.simple_eiffel.eifphone.EifPhoneControlsActivity"
+
 	build_folder: PATH
 			-- <project>/build
 		do
@@ -373,6 +377,9 @@ feature {NONE} -- Stages
 			create l_objs.make (256)
 			across c_sources as ic loop
 				l_objs.append ({STRING_32} " " + runner.quoted (object_of (a_abi, ic)))
+			end
+			across project.native_libraries as ic loop
+				l_objs.append ({STRING_32} " " + runner.quoted (project.for_abi (ic, a_abi)))
 			end
 			run_stage (Stage_link + " " + a_abi, finder.Tool_clang, build_folder,
 				runner.quoted (tools.clang) + {STRING_32} " --target=" + triple (a_abi) + project.min_sdk.out.to_string_32
@@ -647,6 +654,9 @@ feature {NONE} -- Stage support
 				+ {STRING_32} " -I" + runner.quoted (tools.native_app_glue) + {STRING_32} " -I" + runner.quoted (tools.boehm_gc_include)
 				+ {STRING_32} " -include " + runner.quoted (runtime_dir.extended ("c").extended ("sephone_fastjmp.h"))
 			Result.append ({STRING_32} " -I" + runner.quoted (tools.gec_runtime_include))
+			across project.native_abi_includes as ic loop
+				Result.append ({STRING_32} " -I" + runner.quoted (project.for_abi (ic, a_abi)))
+			end
 			across project.native_includes as ic loop
 				Result.append ({STRING_32} " -I" + runner.quoted (ic))
 			end
@@ -666,6 +676,7 @@ feature {NONE} -- Stage support
 		do
 			Result := files_with_extension (generated_folder, "c")
 			Result.extend (runtime_dir.extended ("c").extended ("sephone_glue.c"))
+			Result.extend (runtime_dir.extended ("c").extended ("sephone_controls.c"))
 			Result.extend (tools.native_app_glue.extended ("android_native_app_glue.c"))
 			Result.append (project.native_sources)
 		end
@@ -801,6 +812,7 @@ feature {NONE} -- Hashes (FR-008)
 				Result := Result + file_hash (ic)
 			end
 			Result := Result + file_hash (runtime_dir.extended ("c").extended ("sephone.h"))
+			Result := Result + file_hash (runtime_dir.extended ("c").extended ("sephone_bridge.h"))
 			Result := Result + file_hash (runtime_dir.extended ("c").extended ("sephone_fastjmp.h"))
 		end
 

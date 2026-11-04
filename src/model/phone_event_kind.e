@@ -54,6 +54,23 @@ feature -- Codes: services
 	Kind_file_cancelled: INTEGER = 44
 	Kind_file_failed: INTEGER = 45
 
+feature -- Codes: Android's controls
+
+	Kind_control_clicked: INTEGER = 50
+	Kind_control_changed: INTEGER = 51
+	Kind_control_rows: INTEGER = 52
+			-- A list wants a block of rows, starting at position `x'.
+	Kind_control_selected: INTEGER = 53
+	Kind_control_pressed: INTEGER = 54
+	Kind_control_swept: INTEGER = 55
+	Kind_control_released: INTEGER = 56
+	Kind_control_canvas_ready: INTEGER = 57
+	Kind_control_canvas_lost: INTEGER = 58
+	Kind_control_answered: INTEGER = 59
+	Kind_control_called: INTEGER = 60
+	Kind_control_failed: INTEGER = 61
+	Kind_control_back: INTEGER = 62
+
 feature -- Families
 
 	is_lifecycle_kind (a_k: INTEGER): BOOLEAN
@@ -77,10 +94,16 @@ feature -- Families
 	is_valid_kind (a_k: INTEGER): BOOLEAN
 			-- Is `a_k' none or a member of exactly one family?
 		do
-			Result := a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k) or is_service_kind (a_k)
+			Result := a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k) or is_service_kind (a_k) or is_control_kind (a_k)
 		ensure
-			definition: Result = (a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k) or is_service_kind (a_k))
+			definition: Result = (a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k) or is_service_kind (a_k) or is_control_kind (a_k))
 			families_disjoint: (is_lifecycle_kind (a_k).to_integer + is_touch_kind (a_k).to_integer + is_key_kind (a_k).to_integer) <= 1
+		end
+
+	is_control_kind (a_k: INTEGER): BOOLEAN
+			-- Is `a_k' from one of Android's controls?
+		do
+			Result := Kind_control_clicked <= a_k and a_k <= Kind_control_back
 		end
 
 	is_speech_kind (a_k: INTEGER): BOOLEAN
@@ -135,6 +158,19 @@ feature -- Names
 			when Kind_file_picked then Result := "file_picked"
 			when Kind_file_cancelled then Result := "file_cancelled"
 			when Kind_file_failed then Result := "file_failed"
+			when Kind_control_clicked then Result := "control_clicked"
+			when Kind_control_changed then Result := "control_changed"
+			when Kind_control_rows then Result := "control_rows"
+			when Kind_control_selected then Result := "control_selected"
+			when Kind_control_pressed then Result := "control_pressed"
+			when Kind_control_swept then Result := "control_swept"
+			when Kind_control_released then Result := "control_released"
+			when Kind_control_canvas_ready then Result := "control_canvas_ready"
+			when Kind_control_canvas_lost then Result := "control_canvas_lost"
+			when Kind_control_answered then Result := "control_answered"
+			when Kind_control_called then Result := "control_called"
+			when Kind_control_failed then Result := "control_failed"
+			when Kind_control_back then Result := "control_back"
 			else
 				Result := "none"
 			end

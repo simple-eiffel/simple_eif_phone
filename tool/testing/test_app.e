@@ -69,6 +69,7 @@ feature {NONE} -- Test Runners
 			run_test (agent l_e2e.test_fr008_incremental_skips_unchanged, "test_fr008_incremental_skips_unchanged")
 			run_test (agent l_e2e.test_fr011_dex_only_with_helper, "test_fr011_dex_only_with_helper")
 			run_test (agent l_e2e.test_ac10_java_helper_scaffold, "test_ac10_java_helper_scaffold")
+			run_test (agent l_e2e.test_controls_app, "test_controls_app")
 			run_test (agent l_e2e.test_q12_icon_and_permissions_in_manifest, "test_q12_icon_and_permissions_in_manifest")
 			run_test (agent l_e2e.test_q12_missing_icon_named, "test_q12_missing_icon_named")
 			run_test (agent l_e2e.test_ac3_planted_gec_error, "test_ac3_planted_gec_error")

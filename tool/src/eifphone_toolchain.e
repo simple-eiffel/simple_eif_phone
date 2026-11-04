@@ -236,6 +236,7 @@ feature -- Pins
 feature -- Default locations (Larry's layout)
 
 	Default_sdk: STRING_8 = "D:\android\sdk"
+	Default_native: STRING_8 = "D:\android\native"
 	Default_jdk: STRING_8 = "D:\android\jdk"
 	Default_gec: STRING_8 = "D:\prod\gobo-26.10\gobo\bin\gec.exe"
 	Default_gobo_library: STRING_8 = "D:\prod\simple_gobo\library"
