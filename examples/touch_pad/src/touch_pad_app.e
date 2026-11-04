@@ -222,58 +222,118 @@ feature {NONE} -- Saving
 	save_path: STRING
 			-- Where strokes are kept between runs.
 		do
+			Result := phone.storage.internal_path + "/strokes.db"
+		end
+
+	old_save_path: STRING
+			-- Where versions before 0.2.0 kept them.
+		do
 			Result := phone.storage.internal_path + "/strokes.txt"
 		end
 
 	save_strokes
-			-- One line per stroke: "<rgb> x y x y ...".
+			-- One row per stroke: rgb, and "x y x y ..." as text. One transaction.
 		local
-			f: PLAIN_TEXT_FILE
+			l_db: SIMPLE_SQL_DATABASE
+			l_points: STRING
 			i: INTEGER
 		do
-			create f.make_create_read_write (save_path)
+			create l_db.make (save_path)
+			l_db.execute (Create_table)
+			l_db.execute ("BEGIN")
+			l_db.execute ("DELETE FROM strokes")
 			across strokes as ic loop
-				f.put_string (ic.rgb.out)
+				create l_points.make (ic.count * 8)
 				from i := 1 until i > ic.count loop
-					f.put_string (" " + ic.xs [i].out + " " + ic.ys [i].out)
+					l_points.append (ic.xs [i].out + " " + ic.ys [i].out + " ")
 					i := i + 1
 				end
-				f.put_new_line
+				l_db.execute ("INSERT INTO strokes (rgb, points) VALUES (" + ic.rgb.out + ", '" + l_points + "')")
 			end
-			f.close
+			l_db.execute ("COMMIT")
+			if l_db.has_error and then attached l_db.last_error_message as al_message then
+				phone.log.error ("touch pad: save failed: " + al_message.to_string_8)
+			end
+			l_db.close
 			phone.log.info ("touch pad: saved " + strokes.count.out + " strokes")
 		end
 
+	Create_table: STRING = "CREATE TABLE IF NOT EXISTS strokes (id INTEGER PRIMARY KEY, rgb INTEGER, points TEXT)"
+
 	load_strokes
-			-- Read `save_path', if it is there.
+			-- Read `save_path', or bring in the save file of an earlier version.
+		do
+			if (create {RAW_FILE}.make_with_name (save_path)).exists then
+				load_from_database
+			else
+				load_old_save
+				if not strokes.is_empty then
+					save_strokes
+				end
+			end
+		end
+
+	load_from_database
+			-- Every row of `save_path', oldest first. A damaged file is set aside, not lost.
+		local
+			l_db: SIMPLE_SQL_DATABASE
+			l_rows: SIMPLE_SQL_RESULT
+			l_file: RAW_FILE
+			i: INTEGER
+		do
+			create l_db.make (save_path)
+			l_rows := l_db.query ("SELECT rgb, points FROM strokes ORDER BY id")
+			if l_db.has_error then
+				l_db.close
+				create l_file.make_with_name (save_path)
+				l_file.rename_file (save_path + ".damaged")
+				phone.log.error ("touch pad: save file damaged; starting empty")
+			else
+				from i := 1 until i > l_rows.count loop
+					add_stroke (l_rows.rows [i].integer_value ("rgb"), l_rows.rows [i].string_value ("points").to_string_8.split (' '), 1)
+					i := i + 1
+				end
+				l_db.close
+			end
+		end
+
+	load_old_save
+			-- Read `old_save_path', if it is there: one line per stroke, "<rgb> x y x y ...".
 		local
 			f: PLAIN_TEXT_FILE
 			l_parts: LIST [STRING]
-			s: PAD_STROKE
-			i: INTEGER
 		do
-			create f.make_with_name (save_path)
+			create f.make_with_name (old_save_path)
 			if f.exists then
 				f.open_read
 				from until f.end_of_file or else not f.file_readable loop
 					f.read_line
 					l_parts := f.last_string.split (' ')
-					if l_parts.count >= 3 and then l_parts.first.is_integer
-						and then 0 <= l_parts.first.to_integer and then l_parts.first.to_integer <= 0xFFFFFF
-					then
-						create s.make (l_parts.first.to_integer)
-						from i := 2 until i + 1 > l_parts.count loop
-							if l_parts [i].is_integer and l_parts [i + 1].is_integer then
-								s.extend (l_parts [i].to_integer, l_parts [i + 1].to_integer)
-							end
-							i := i + 2
-						end
-						if s.count > 0 then
-							strokes.extend (s)
-						end
+					if l_parts.count >= 3 and then l_parts.first.is_integer then
+						add_stroke (l_parts.first.to_integer, l_parts, 2)
 					end
 				end
 				f.close
+			end
+		end
+
+	add_stroke (a_rgb: INTEGER; a_parts: LIST [STRING]; a_first: INTEGER)
+			-- Add a stroke of color `a_rgb' from the x y pairs in `a_parts', starting at `a_first'.
+		local
+			s: PAD_STROKE
+			i: INTEGER
+		do
+			if 0 <= a_rgb and a_rgb <= 0xFFFFFF then
+				create s.make (a_rgb)
+				from i := a_first until i + 1 > a_parts.count loop
+					if a_parts [i].is_integer and a_parts [i + 1].is_integer then
+						s.extend (a_parts [i].to_integer, a_parts [i + 1].to_integer)
+					end
+					i := i + 2
+				end
+				if s.count > 0 then
+					strokes.extend (s)
+				end
 			end
 		end
 

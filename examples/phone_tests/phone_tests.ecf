@@ -12,6 +12,7 @@
 		</capability>
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
 		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf"/>
+		<library name="simple_sql" location="$SIMPLE_EIFFEL\simple_sql\simple_sql.ecf"/>
 		<cluster name="src" location=".\src\"/>
 	</target>
 </system>

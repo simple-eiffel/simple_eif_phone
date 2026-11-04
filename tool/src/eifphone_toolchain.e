@@ -208,6 +208,12 @@ feature -- Tool files
 			Result := gec.parent.parent.extended ("tool").extended ("gec").extended ("backend").extended ("c").extended ("boehm_gc").extended ("include")
 		end
 
+	gec_runtime_include: PATH
+			-- gec's runtime headers (eif_eiffel.h and friends), for library C that uses them.
+		do
+			Result := gec.parent.parent.extended ("tool").extended ("gec").extended ("backend").extended ("c").extended ("runtime")
+		end
+
 	pins_match: BOOLEAN
 			-- Did the last `check_all' find every pinned version?
 		do

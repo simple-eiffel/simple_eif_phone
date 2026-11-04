@@ -59,6 +59,60 @@ feature -- Execution
 			launch_failed_is_failure: not process_started implies not succeeded
 		end
 
+	run_limited (a_command: READABLE_STRING_32; a_directory: PATH; a_log: PATH; a_seconds: INTEGER)
+			-- As `run', but give up after `a_seconds': a program that never answers
+			-- is ended, and `timed_out' says so.
+		require
+			command_given: not a_command.is_empty
+			limit_positive: a_seconds > 0
+		local
+			l_process: SIMPLE_ASYNC_PROCESS
+			l_start: NATURAL_64
+			l_ignored: INTEGER
+			l_killed: BOOLEAN
+		do
+			if attached java_home as al_j then
+				(create {SIMPLE_ENV}).set ("JAVA_HOME", al_j.name)
+			end
+			timed_out := False
+			create l_process.make
+			l_start := tick_ms
+			l_process.start_in_directory (a_command, a_directory.name)
+			process_started := l_process.was_started_successfully
+			if process_started then
+				from until not l_process.is_running or l_process.elapsed_seconds >= a_seconds loop
+					l_ignored := l_process.wait (100)
+					if attached l_process.read_available_output as al_more then
+						-- Reading keeps the pipe from filling; `accumulated_output' holds it.
+					end
+				end
+				if l_process.is_running then
+					l_killed := l_process.kill
+					timed_out := True
+					last_exit_code := -1
+				else
+					if attached l_process.read_available_output as al_more then
+						-- The last of the output.
+					end
+					last_exit_code := l_process.exit_code
+				end
+				last_output := l_process.accumulated_output.twin
+			elseif attached l_process.last_error as al_e then
+				last_output := al_e.to_string_32
+			else
+				create last_output.make_empty
+			end
+			l_process.close
+			last_seconds := (tick_ms - l_start).to_real_64 / 1000.0
+			has_run := True
+			write_log (a_log, a_command)
+		ensure
+			ran: has_run
+			seconds_ok: last_seconds >= 0.0
+			launch_failed_is_failure: not process_started implies not succeeded
+			timed_out_is_failure: timed_out implies not succeeded
+		end
+
 feature -- Settings
 
 	java_home: detachable PATH
@@ -93,6 +147,9 @@ feature -- Access
 	last_exit_code: INTEGER
 	last_output: STRING_32
 	last_seconds: REAL_64
+
+	timed_out: BOOLEAN
+			-- Did the last `run_limited' hit its limit?
 
 	succeeded: BOOLEAN
 			-- Did the last command start and exit with 0?

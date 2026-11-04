@@ -156,6 +156,104 @@ feature -- Project
 			assert ("password_env named", across p.errors as ic some ic.has_substring ({STRING_32} "password_env is missing") end)
 		end
 
+	test_project_native_read
+			-- [native]: sources, include folders and defines all arrive, as absolute paths.
+		local
+			p: EIFPHONE_PROJECT
+			l_dir: PATH
+		do
+			l_dir := project_folder ("nativeok", Good_toml + "%N[native]%Nsources = [%"extra.c%"]%Ninclude = [%".%"]%Ndefines = [%"ALPHA%", %"BETA=2%"]%N")
+			touch (l_dir.extended ("extra.c"))
+			create p.make
+			p.load (l_dir)
+			assert ("valid: " + p.errors.count.out, p.is_valid)
+			assert ("one source", p.native_sources.count = 1)
+			assert ("absolute", p.native_sources.first.is_absolute)
+			assert ("one include", p.native_includes.count = 1)
+			assert ("two defines", p.native_defines.count = 2)
+		end
+
+	test_project_no_native_is_fine
+			-- Most apps have no [native] table.
+		local
+			p: EIFPHONE_PROJECT
+		do
+			create p.make
+			p.load (project_folder ("nonative", Good_toml))
+			assert ("valid", p.is_valid)
+			assert ("no sources", p.native_sources.is_empty)
+		end
+
+	test_project_native_missing_source_named
+			-- A source that is not there is a settings error, by name.
+		local
+			p: EIFPHONE_PROJECT
+		do
+			create p.make
+			p.load (project_folder ("nativemiss", Good_toml + "%N[native]%Nsources = [%"gone.c%"]%N"))
+			assert ("invalid", not p.is_valid)
+			assert ("named", p.errors.first.has_substring ({STRING_32} "[native]") and p.errors.first.has_substring ({STRING_32} "gone.c"))
+		end
+
+	test_project_native_only_c_sources
+			-- A source must be a .c file.
+		local
+			p: EIFPHONE_PROJECT
+			l_dir: PATH
+		do
+			l_dir := project_folder ("nativetxt", Good_toml + "%N[native]%Nsources = [%"notes.txt%"]%N")
+			touch (l_dir.extended ("notes.txt"))
+			create p.make
+			p.load (l_dir)
+			assert ("invalid", not p.is_valid)
+		end
+
+	test_project_native_same_name_refused
+			-- Two sources with one file name would share an object file.
+		local
+			p: EIFPHONE_PROJECT
+			l_dir: PATH
+			l_sub: DIRECTORY
+		do
+			l_dir := project_folder ("nativedup", Good_toml + "%N[native]%Nsources = [%"a.c%", %"sub/a.c%"]%N")
+			create l_sub.make_with_path (l_dir.extended ("sub"))
+			if not l_sub.exists then
+				l_sub.create_dir
+			end
+			touch (l_dir.extended ("a.c"))
+			touch (l_dir.extended ("sub").extended ("a.c"))
+			create p.make
+			p.load (l_dir)
+			assert ("invalid", not p.is_valid)
+			assert ("said why", p.errors.first.has_substring ({STRING_32} "a.c"))
+		end
+
+	test_project_native_define_cannot_carry_a_command
+			-- A define reaches clang's command line, so only NAME or NAME=value passes.
+		local
+			p: EIFPHONE_PROJECT
+		do
+			across <<"A B", "A;calc", "A&calc", "-X", "1A", "A=b c", "A=%%x%%", "">> as ic loop
+				assert ("refused: " + ic, not p_default.is_native_define (ic))
+			end
+			assert ("plain", p_default.is_native_define ("SQLITE_ENABLE_FTS5"))
+			assert ("valued", p_default.is_native_define ("SQLITE_TEMP_STORE=3"))
+			create p.make
+			p.load (project_folder ("nativebad", Good_toml + "%N[native]%Ndefines = [%"A;calc%"]%N"))
+			assert ("invalid", not p.is_valid)
+		end
+
+	test_project_native_simple_eiffel_folder
+			-- $SIMPLE_EIFFEL opens a path, so a library's C can be named in any project.
+		local
+			p: EIFPHONE_PROJECT
+		do
+			create p.make
+			p.load (project_folder ("nativeenv", Good_toml + "%N[native]%Ninclude = [%"$SIMPLE_EIFFEL/simple_eif_phone/runtime/c%"]%N"))
+			assert ("valid", p.is_valid)
+			assert ("expanded", not p.native_includes.first.name.has_substring ({STRING_32} "$"))
+		end
+
 	test_report_duplicate_pass_is_not_pass
 			-- RA-5 counter-example: one test passing twice is not two tests.
 		local
@@ -181,6 +279,22 @@ feature -- Project
 feature {NONE} -- Fixtures
 
 	Good_toml: STRING = "[app]%Nid = %"io.github.test.app%"%Nlabel = %"Test%"%Nversion_code = 1%Nversion_name = %"0.1.0%"%N%N[eiffel]%Necf = %"app.ecf%"%Ntarget = %"app%"%N%N[android]%Nabis = [%"arm64-v8a%", %"x86_64%"]%Nmin_sdk = 26%Ntarget_sdk = 36%N"
+
+	p_default: EIFPHONE_PROJECT
+			-- A project for its pure queries.
+		do
+			create Result.make
+		end
+
+	touch (a_path: PATH)
+			-- Make an empty file at `a_path'.
+		local
+			f: PLAIN_TEXT_FILE
+		do
+			create f.make_with_path (a_path)
+			f.create_read_write
+			f.close
+		end
 
 	project_folder (a_name, a_toml: STRING): PATH
 			-- A fresh folder testing/tmp/<a_name> holding eifphone.toml and an empty app.ecf.

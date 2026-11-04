@@ -172,6 +172,20 @@ feature {NONE} -- Implementation
 			create Result.make_from_string ("eifphone-adb.log")
 		end
 
+	adb_limit_seconds: INTEGER
+			-- How long one adb call may take. EIFPHONE_ADB_SECONDS overrides the default.
+		do
+			Result := Default_adb_seconds
+			if attached (create {SIMPLE_ENV}).get ("EIFPHONE_ADB_SECONDS") as al_v and then al_v.is_integer and then al_v.to_integer > 0 then
+				Result := al_v.to_integer
+			end
+		ensure
+			positive: Result > 0
+		end
+
+	Default_adb_seconds: INTEGER = 300
+			-- Long enough to install a large app over Wi-Fi.
+
 	adb_run (a_arguments: READABLE_STRING_32)
 			-- Run adb against the target; record success and the first error.
 		local
@@ -183,11 +197,13 @@ feature {NONE} -- Implementation
 				l_cmd.append ({STRING_32} " -s " + al_c.to_string_32)
 			end
 			l_cmd.append ({STRING_32} " " + a_arguments)
-			runner.run (l_cmd, create {PATH}.make_current, log_file)
+			runner.run_limited (l_cmd, create {PATH}.make_current, log_file, adb_limit_seconds)
 			create f
 			last_succeeded := runner.succeeded and then not runner.last_output.has_substring ({STRING_32} "Failure [")
 			if last_succeeded then
 				create last_error.make_empty
+			elseif runner.timed_out then
+				last_error := {STRING_32} "adb did not answer within " + adb_limit_seconds.out.to_string_32 + {STRING_32} " seconds"
 			elseif attached f.first_error (f.Tool_adb, runner.last_output) as al_e then
 				last_error := al_e
 			else

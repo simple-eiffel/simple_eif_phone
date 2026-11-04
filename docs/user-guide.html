@@ -83,6 +83,17 @@ java_helper = false
 # alias = &quot;myapp&quot;
 # password_env = &quot;MYAPP_KS_PASS&quot;</code></pre>
                 <p>An icon goes under <code>[app]</code> as <code>icon</code>. A missing icon file is a settings error.</p>
+                <h3>Extra C code: <code>[native]</code></h3>
+                <p>Some libraries bring their own C. Name it in an optional <code>[native]</code> table, and the tool compiles it into the app for each processor type.</p>
+                <pre><code>[native]
+sources = [&quot;$SIMPLE_EIFFEL/mylib/Clib/mylib.c&quot;]
+include = [&quot;$SIMPLE_EIFFEL/mylib/Clib&quot;]
+defines = [&quot;MYLIB_FAST&quot;, &quot;MYLIB_LEVEL=2&quot;]</code></pre>
+                <ul>
+                <li>A path may start with <code>$SIMPLE_EIFFEL</code>. Other paths are relative to the project.</li>
+                <li>Sources must be <code>.c</code> files, and no two may share a file name.</li>
+                <li>A define must be <code>NAME</code> or <code>NAME=value</code>. Anything else is refused.</li>
+                </ul>
             </section>
             <section id="rules">
                 <h2>Rules worth knowing</h2>
@@ -130,6 +141,7 @@ java_helper = false
                 <li><strong>A device is not ready:</strong> the tool names it, for example a phone that has not allowed this PC.</li>
                 <li><strong>More than one device:</strong> choose with <code>--device &lt;serial&gt;</code>.</li>
                 <li><strong>The app crashed:</strong> <code>eifphone log myapp --crash</code>.</li>
+                <li><strong><code>adb</code> stopped answering:</strong> the tool ends it after 5 minutes and exits with code 5. <code>EIFPHONE_ADB_SECONDS</code> sets a different limit.</li>
                 <li><strong>The pad or a live app feels slow:</strong> check that you built the <code>app_fast</code> target.</li>
                 </ul>
             </section>
@@ -138,8 +150,7 @@ java_helper = false
                 <ul>
 <li><strong>The tool runs on Windows only.</strong> Phone apps run on Android 8.0 (API 26) or later, on ARM64 and x86_64.</li>
 <li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
-<li><strong>Not yet:</strong> text entry (the keyboard), read-aloud, the file picker, SQLite, and running cairo, shaping and widgets on the phone.</li>
-<li><strong>An <code>adb</code> that never answers hangs the tool.</strong> The runner has no timeout. Stop the tool by hand if that happens.</li>
+<li><strong>Not yet:</strong> text entry (the keyboard), read-aloud, the file picker, and running cairo, shaping and widgets on the phone.</li>
 <li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>
 <li><strong>On-device tests have run on the emulator only.</strong> Speed, multi-touch, Home and return, and rotation were checked by hand on one real ARM phone.</li>
 <li><strong>Two one-off failures are unexplained.</strong> <code>tap_arrives</code> failed once, in the first run after a stress session on a fresh emulator, then passed. One stress run stopped on a crash from a process that was not identified, and the same run passed when repeated.</li>

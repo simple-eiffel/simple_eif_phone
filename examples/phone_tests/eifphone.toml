@@ -13,3 +13,8 @@ abis = ["arm64-v8a", "x86_64"]
 min_sdk = 26
 target_sdk = 36
 java_helper = false
+
+[native]
+sources = ["$SIMPLE_EIFFEL/eiffel_sqlite_2025/Clib/sqlite3.c", "$SIMPLE_EIFFEL/eiffel_sqlite_2025/Clib/esqlite.c"]
+include = ["$SIMPLE_EIFFEL/eiffel_sqlite_2025/Clib"]
+defines = ["SQLITE_THREADSAFE=1", "SQLITE_ENABLE_FTS5", "SQLITE_ENABLE_RTREE", "SQLITE_ENABLE_GEOPOLY", "SQLITE_ENABLE_MATH_FUNCTIONS", "SQLITE_OMIT_LOAD_EXTENSION", "SQLITE_ENABLE_COLUMN_METADATA", "SQLITE_TEMP_STORE=3"]

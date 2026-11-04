@@ -50,9 +50,9 @@
             </section>
             <section id="status">
                 <h2>Status</h2>
-                <p><strong>Version 0.1.0: early, working, not yet widely used.</strong></p>
+                <p><strong>Version 0.2.0: early, working, not yet widely used.</strong></p>
                 <ul>
-                <li>88 tool tests, 33 logic tests and 18 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
+                <li>98 tool tests, 33 logic tests and 21 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
                 <li>On a real ARM phone, the touch pad took five fingers at once. Putting a full screen up took 1.8 ms on average and 6.5 ms at worst.</li>
                 <li>Random-input stress: 9,000 events on each of the fast and checked builds of the touch pad, with no crash.</li>
                 </ul>
@@ -62,8 +62,7 @@
                 <ul>
 <li><strong>The tool runs on Windows only.</strong> Phone apps run on Android 8.0 (API 26) or later, on ARM64 and x86_64.</li>
 <li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
-<li><strong>Not yet:</strong> text entry (the keyboard), read-aloud, the file picker, SQLite, and running cairo, shaping and widgets on the phone.</li>
-<li><strong>An <code>adb</code> that never answers hangs the tool.</strong> The runner has no timeout. Stop the tool by hand if that happens.</li>
+<li><strong>Not yet:</strong> text entry (the keyboard), read-aloud, the file picker, and running cairo, shaping and widgets on the phone.</li>
 <li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>
 <li><strong>On-device tests have run on the emulator only.</strong> Speed, multi-touch, Home and return, and rotation were checked by hand on one real ARM phone.</li>
 <li><strong>Two one-off failures are unexplained.</strong> <code>tap_arrives</code> failed once, in the first run after a stress session on a fresh emulator, then passed. One stress run stopped on a crash from a process that was not identified, and the same run passed when repeated.</li>
