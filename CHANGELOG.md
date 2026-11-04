@@ -31,7 +31,7 @@
 - **Tests:** 6 more logic tests and 6 more on-device tests.
 
 ### Known limitations
-- Read-aloud has only run on the emulator, which has no sound. The engine ran each sentence to its end, but nobody has heard it yet.
+- Read-aloud needs the language's voice on the phone. On the one real phone tried, Hebrew stayed silent, with a failure reported, until its voice was downloaded in the phone's text-to-speech settings.
 
 ## [0.2.0] - unreleased
 
