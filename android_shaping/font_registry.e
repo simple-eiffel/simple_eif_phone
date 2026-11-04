@@ -3,7 +3,8 @@ note
 		Creates and caches SHAPING_FONTs, on Android. Same interface as simple_shaping's
 		class of this name. A family is a file in /system/fonts, or one the app loaded.
 		The Windows family names simple_shaping asks for by default map to the
-		nearest font every Android phone carries.
+		nearest font on the phone: Android's usual file if it is there, then a file
+		named for the kind of font, then any file that really draws the script.
 	]"
 	author: "Larry Rix"
 
@@ -23,6 +24,8 @@ feature {NONE} -- Initialization
 			create fonts.make (8)
 			create family_verdicts.make (8)
 			create private_files.make (2)
+			create found_files.make (8)
+			fonts_folder := System_fonts_folder
 		ensure
 			registry_empty: count = 0
 		end
@@ -96,6 +99,9 @@ feature -- Access
 			end
 		end
 
+	fonts_folder: STRING_8
+			-- Where fonts are looked for, ending in a slash.
+
 	verdict_count: INTEGER
 		do
 			Result := family_verdicts.count
@@ -104,6 +110,18 @@ feature -- Access
 		end
 
 feature -- Commands
+
+	set_fonts_folder (a_folder: READABLE_STRING_8)
+			-- Look for fonts in `a_folder', which ends in a slash.
+		require
+			ends_in_slash: not a_folder.is_empty and then a_folder [a_folder.count] = '/'
+		do
+			create fonts_folder.make_from_string (a_folder)
+			found_files.wipe_out
+			forget_family_verdicts
+		ensure
+			set: fonts_folder.same_string (a_folder)
+		end
 
 	load_private_font_file (a_path: READABLE_STRING_GENERAL): INTEGER
 			-- Make the file's name, without its extension, a family.
@@ -196,14 +214,29 @@ feature {NONE} -- Implementation
 				or l_family.same_string_general ("roboto")
 			then
 				Result := first_there ("Roboto-Regular.ttf", "RobotoStatic-Regular.ttf")
+				if Result.is_empty then
+					Result := found (<<<<"roboto">>, <<"sans">>, <<>>>>, Latin_sample, a_weight >= 600)
+				end
 			elseif l_family.same_string_general ("noto sans hebrew") then
 				Result := first_there ("NotoSansHebrew-" + l_bold + ".ttf", "NotoSansHebrew-Regular.ttf")
+				if Result.is_empty then
+					Result := found (<<<<"hebrew", "sans">>, <<"hebrew">>, <<>>>>, Hebrew_sample, a_weight >= 600)
+				end
 			elseif l_family.same_string_general ("noto serif hebrew") then
 				Result := first_there ("NotoSerifHebrew-" + l_bold + ".ttf", "NotoSerifHebrew-Regular.ttf")
+				if Result.is_empty then
+					Result := found (<<<<"hebrew", "serif">>, <<"hebrew">>, <<>>>>, Hebrew_sample, a_weight >= 600)
+				end
 			elseif l_family.same_string_general ("times new roman") or l_family.same_string_general ("palatino linotype") then
 				Result := first_there ("NotoSerif-" + l_style + ".ttf", "NotoSerif-Regular.ttf")
+				if Result.is_empty then
+					Result := found (<<<<"serif">>, <<>>>>, Latin_sample, a_weight >= 600)
+				end
 			elseif l_family.same_string_general ("consolas") or l_family.same_string_general ("courier new") then
 				Result := first_there ("DroidSansMono.ttf", "CutiveMono.ttf")
+				if Result.is_empty then
+					Result := found (<<<<"mono">>, <<>>>>, Latin_sample, a_weight >= 600)
+				end
 			else
 				create Result.make_empty
 			end
@@ -213,13 +246,101 @@ feature {NONE} -- Implementation
 			-- The path of whichever of the two is in the system's fonts; empty if neither.
 		do
 			create Result.make_empty
-			if (create {RAW_FILE}.make_with_name (Fonts_folder + a_first)).exists then
-				Result := Fonts_folder + a_first
-			elseif (create {RAW_FILE}.make_with_name (Fonts_folder + a_second)).exists then
-				Result := Fonts_folder + a_second
+			if (create {RAW_FILE}.make_with_name (fonts_folder + a_first)).exists then
+				Result := fonts_folder + a_first
+			elseif (create {RAW_FILE}.make_with_name (fonts_folder + a_second)).exists then
+				Result := fonts_folder + a_second
 			end
 		end
 
-	Fonts_folder: STRING_8 = "/system/fonts/"
+	found (a_word_lists: ARRAY [ARRAY [READABLE_STRING_8]]; a_code: NATURAL_32; a_bold: BOOLEAN): STRING_8
+			-- The first file that matches a list of words and draws `a_code', trying the
+			-- lists in order; empty if there is none. An empty list matches every file.
+			-- Each search is kept, since one may open every font on the phone.
+		local
+			l_key: STRING_8
+			i: INTEGER
+		do
+			l_key := a_code.out + "|" + a_bold.out + "|" + a_word_lists.count.out
+			across a_word_lists as ic loop
+				across ic as jc loop
+					l_key.append_character ('|')
+					l_key.append_string_general (jc)
+				end
+			end
+			if attached found_files.item (l_key) as al_file then
+				Result := al_file
+			else
+				create Result.make_empty
+				from i := a_word_lists.lower until i > a_word_lists.upper or not Result.is_empty loop
+					Result := best_file (a_word_lists [i], a_code, a_bold)
+					i := i + 1
+				end
+				found_files.put (Result, l_key)
+			end
+		end
+
+	best_file (a_words: ARRAY [READABLE_STRING_8]; a_code: NATURAL_32; a_bold: BOOLEAN): STRING_8
+			-- The file named with all of `a_words' that draws `a_code': the weight wanted
+			-- first, then the first by name. Empty if there is none.
+		local
+			l_name: STRING_8
+			l_score, l_best: INTEGER
+			l_path: C_STRING
+		do
+			create Result.make_empty
+			l_best := -1
+			across font_files as ic loop
+				l_name := ic.as_lower
+				if across a_words as jc all l_name.has_substring (jc) end
+					and then not l_name.has_substring ("italic") and then not l_name.has_substring ("emoji")
+				then
+					l_score := if l_name.has_substring (if a_bold then "bold" else "regular" end) then 1 else 0 end
+					if l_score > l_best or (l_score = l_best and ic < Result) then
+						create l_path.make (fonts_folder + ic)
+						if c_covers (l_path.item, a_code) /= 0 then
+							l_best := l_score
+							Result := fonts_folder + ic
+							Result.remove_head (fonts_folder.count)
+						end
+					end
+				end
+			end
+			if not Result.is_empty then
+				Result := fonts_folder + Result
+			end
+		end
+
+	font_files: ARRAYED_LIST [STRING_8]
+			-- The names of the font files in `fonts_folder'.
+		local
+			l_folder: DIRECTORY
+			l_name: STRING_8
+		do
+			create Result.make (32)
+			create l_folder.make (fonts_folder)
+			if l_folder.exists and then l_folder.is_readable then
+				across l_folder.entries as ic loop
+					l_name := ic.name.to_string_8
+					if l_name.as_lower.ends_with (".ttf") or l_name.as_lower.ends_with (".otf") or l_name.as_lower.ends_with (".ttc") then
+						Result.extend (l_name)
+					end
+				end
+			end
+		end
+
+	found_files: HASH_TABLE [STRING_8, STRING_8]
+			-- The results of `found'.
+
+	System_fonts_folder: STRING_8 = "/system/fonts/"
+
+	Latin_sample: NATURAL_32 = 0x41
+
+	Hebrew_sample: NATURAL_32 = 0x5D0
+
+feature {NONE} -- C
+
+	c_covers (a_path: POINTER; a_code: NATURAL_32): INTEGER
+		external "C inline use %"sephone_text.h%"" alias "return (EIF_INTEGER) st_file_covers((const char *)$a_path, (uint32_t)$a_code);" end
 
 end

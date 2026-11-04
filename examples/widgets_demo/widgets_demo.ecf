@@ -14,6 +14,7 @@
 		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf"/>
 		<library name="simple_cairo" location="$SIMPLE_EIFFEL\simple_cairo\simple_cairo.ecf"/>
 		<library name="simple_widgets" location="$SIMPLE_EIFFEL\simple_eif_phone\android_shell\simple_widgets_android.ecf"/>
+		<library name="simple_shaping" location="$SIMPLE_EIFFEL\simple_eif_phone\android_shaping\simple_shaping_android.ecf"/>
 		<cluster name="src" location=".\src\"/>
 	</target>
 </system>

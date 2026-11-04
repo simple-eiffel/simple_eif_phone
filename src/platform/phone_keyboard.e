@@ -32,6 +32,9 @@ feature -- Status
 	is_shown: BOOLEAN
 			-- Has the keyboard been asked for, and not put away?
 
+	top: INTEGER
+			-- The keyboard's top edge in screen pixels; 0 while Android has not said, or it is gone.
+
 	is_available: BOOLEAN
 			-- Does this app carry the Java helper?
 		do
@@ -71,6 +74,9 @@ feature -- Commands
 		do
 			if a_event.kind = Kind_keyboard_closed then
 				is_shown := False
+				top := 0
+			elseif a_event.kind = Kind_keyboard_top then
+				top := a_event.service_code
 			end
 		end
 

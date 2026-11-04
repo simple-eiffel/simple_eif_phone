@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **The keyboard no longer covers a text box low on the screen.** `simple_widgets` slides its drawing up clear of the keyboard, and touches follow. `phone.keyboard.top` gives the keyboard's top edge.
+- **Fonts under other names.** `android_shaping` tries Android's usual file, then a file named for the kind of font, then any file that really draws the script. A phone with no Hebrew font at all still shows boxes.
+
 ## [0.4.0] - 2026-11-04
 
 ### Added
