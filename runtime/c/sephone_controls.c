@@ -488,6 +488,9 @@ static void carry_out(JNIEnv *env, sephone_order *o)
 	case SEPHONE_OP_HEIGHT:
 		set_height(env, v, px(o->a));
 		break;
+	case SEPHONE_OP_PADDING:
+		call_void(env, v->view, "setPadding", "(IIII)V", (jint)px(o->a), (jint)px(o->b), (jint)px(o->a), (jint)px(o->b));
+		break;
 	case SEPHONE_OP_CHECKED:
 		set_quiet(env, v, 1);
 		call_void(env, v->view, "setChecked", "(Z)V", (jboolean)(o->a != 0));

@@ -170,6 +170,7 @@
 #define SEPHONE_OP_BACK 33
 #define SEPHONE_OP_IMAGE 34
 #define SEPHONE_OP_MENU 35
+#define SEPHONE_OP_PADDING 36
 
 /* Back-key policy. */
 #define SEPHONE_BACK_SYSTEM 0  /* Android also handles Back (finishes the app) */

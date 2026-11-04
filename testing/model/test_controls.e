@@ -326,6 +326,21 @@ feature -- Questions and the general route
 			assert ("failure kept", attached l_any.last_failure as al_f and then al_f.has_substring ("setNope"))
 		end
 
+feature -- Padding
+
+	test_padding_is_ordered
+		local
+			l_port: TEST_CONTROL_PORT
+			l_controls: PHONE_CONTROLS
+			l_button: PHONE_BUTTON
+		do
+			create l_port.make
+			create l_controls.make (l_port)
+			create l_button.make (l_controls, {STRING_32} "x", Void)
+			l_button.set_padding (4, 8)
+			assert ("sent", attached l_port.last_of (Op_padding) as al_o and then al_o.first = 4 and then al_o.second = 8)
+		end
+
 feature -- Pictures and menus
 
 	test_image_names_its_asset

@@ -103,6 +103,17 @@ feature -- Element change
 			order (Op_height, a_height, 0, Void)
 		end
 
+	set_padding (a_sides, a_top_and_bottom: INTEGER)
+			-- Set the space inside the control, in density-independent pixels. Android's
+			-- buttons keep a lot at the sides, which matters to narrow ones when the
+			-- phone's text size is set large.
+		require
+			sides_valid: a_sides >= 0
+			top_and_bottom_valid: a_top_and_bottom >= 0
+		do
+			order (Op_padding, a_sides, a_top_and_bottom, Void)
+		end
+
 	discard
 			-- Finished with this control: Android lets go of it. Take it out of its
 			-- parent first. Screens that are shown again need not do this; an app

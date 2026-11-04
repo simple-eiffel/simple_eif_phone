@@ -286,6 +286,11 @@ ids_ahead: last_id &gt;= count</div>
 <p>Fix the height, in density-independent pixels.</p>
 <p><strong>Requires</strong></p><div class="clause">positive: a_height &gt; 0</div>
 </div>
+<div class="feature"><h4>set_padding (a_sides, a_top_and_bottom: INTEGER)</h4>
+<p>Set the space inside the control, in density-independent pixels. Android&#x27;s buttons keep a lot at the sides, which matters to narrow ones when the phone&#x27;s text size is set large.</p>
+<p><strong>Requires</strong></p><div class="clause">sides_valid: a_sides &gt;= 0
+top_and_bottom_valid: a_top_and_bottom &gt;= 0</div>
+</div>
 <div class="feature"><h4>discard</h4>
 <p>Finished with this control: Android lets go of it. Take it out of its parent first. Screens that are shown again need not do this; an app that keeps building new controls should, or they stay in memory.</p>
 <p><strong>Requires</strong></p><div class="clause">not_shown: controls.root /= Current</div>

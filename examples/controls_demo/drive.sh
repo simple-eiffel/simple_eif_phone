@@ -70,7 +70,7 @@ $ADB shell input keyevent 4; sleep 1   # closes the keyboard
 tap "Round trip"; check "Hebrew and emoji through a real control" "round trip same True"
 tap "Show a toast"; check "button click and toast" "toast"
 tap "Ask a question"; sleep 1; shot dialog
-tap "YES"; check "dialog answer" "answer True"
+tap "[Yy][Ee][Ss]"; check "dialog answer" "answer True"
 tap "Pick a date"; sleep 1; shot date
 tap "OK"; check "date picker" "date \[2026-11-4\]"
 tap "Pick a time"; sleep 1; shot time

@@ -64,6 +64,7 @@ feature -- Orders
 	Op_back: INTEGER = 33
 	Op_image: INTEGER = 34
 	Op_menu: INTEGER = 35
+	Op_padding: INTEGER = 36
 
 feature -- Arguments of the general route
 

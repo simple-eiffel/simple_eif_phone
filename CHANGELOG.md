@@ -5,7 +5,7 @@
 ### Added
 - **Android's own controls from Eiffel** (cluster `src/controls`, `controls = true`): label, button, text box, check box, switch, slider, progress bar, drop-down, radio group, list, scroll, column, row, canvas, image, toast, dialog, pop-up menu, date and time pickers.
 - **Any other control, by name:** `PHONE_CONTROL.make_any`, with `call`, `ask` and `listen`. 26 more classes were made this way in testing.
-- **`phone.run_controls`, `controls.set_on_back`, `PHONE_CONTROL.discard`.**
+- **`phone.run_controls`, `controls.set_on_back`, `PHONE_CONTROL.discard`, `PHONE_CONTROL.set_padding`.**
 - **`examples/controls_demo`:** every control, a list of 31,000 rows, and drawing with a finger.
 - **cairo for Android:** `runtime/native/build_cairo.sh` builds it and what it needs. `[native] libraries`, `$ABI` and `$EIFPHONE_NATIVE` link it. See `examples/cairo_draw`.
 - **`simple_widgets` on the phone, unchanged** (cluster `android_shell`, `simple_widgets_android.ecf`). See `examples/widgets_demo` and `examples/widgets_7guis`.
@@ -16,7 +16,7 @@
 - **Apps start in their own private folder,** so plain relative file names work. They used to start in `/`, which they cannot write.
 
 ### Known limitations
-- Nothing in this version has run on a real phone yet.
+- This version has run on one real phone, without rotation or the list's fast-scroll thumb.
 - Fonts in `simple_widgets` are found by file name, so a phone that names them differently shows boxes.
 - Emoji in `simple_widgets` show as boxes: no emoji pictures are packed.
 - Lines in `simple_widgets` break only after a space, hyphen or maqaf.

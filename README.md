@@ -16,8 +16,8 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 **0.4.0: early, working, not yet widely used.**
 
-- 101 tool tests, 59 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
-- Android's own controls, and `simple_widgets` drawn by cairo, have run on the emulator only so far.
+- 101 tool tests, 60 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
+- Android's own controls, and `simple_widgets` drawn by cairo, have run on the emulator and on one real phone.
 - On a real ARM phone, the touch pad demo took five fingers at once, and a full screen went up in 6.5 ms at worst.
 - The tool runs on Windows. Apps run on Android 8.0 or later, on ARM64 and x86_64.
 - See [known limitations](https://simple-eiffel.github.io/simple_eif_phone/#limits) before you rely on it.

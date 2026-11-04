@@ -147,10 +147,17 @@ feature {NONE} -- Screens
 		do
 			create Result.make (controls)
 			Result.set_spacing (4, 4)
-			Result.extend_growing (create {PHONE_BUTTON}.make (controls, {STRING_32} "Form", agent go (form, "form")), 1)
-			Result.extend_growing (create {PHONE_BUTTON}.make (controls, {STRING_32} "List", agent go (rows_screen, "list")), 1)
-			Result.extend_growing (create {PHONE_BUTTON}.make (controls, {STRING_32} "Draw", agent go (draw_screen, "draw")), 1)
-			Result.extend_growing (create {PHONE_BUTTON}.make (controls, {STRING_32} "More", agent go_more), 1)
+			Result.extend_growing (nav_button ({STRING_32} "Form", agent go (form, "form")), 1)
+			Result.extend_growing (nav_button ({STRING_32} "List", agent go (rows_screen, "list")), 1)
+			Result.extend_growing (nav_button ({STRING_32} "Draw", agent go (draw_screen, "draw")), 1)
+			Result.extend_growing (nav_button ({STRING_32} "More", agent go_more), 1)
+		end
+
+	nav_button (a_label: READABLE_STRING_32; a_action: PROCEDURE [TUPLE]): PHONE_BUTTON
+			-- A narrow button, whose label still fits when the phone's text size is large.
+		do
+			create Result.make (controls, a_label, a_action)
+			Result.set_padding (4, 8)
 		end
 
 feature {NONE} -- Reactions
