@@ -149,7 +149,7 @@ feature -- Access: [native]
 		local
 			l_text: STRING_8
 		do
-			l_text := a_text.to_string_8
+			create l_text.make_from_string (a_text)   -- the original stays as written, for the next ABI
 			l_text.replace_substring_all (Abi_mark, a_abi)
 			Result := native_path (l_text)
 		end

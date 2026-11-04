@@ -33,6 +33,37 @@
     <main>
         <div class="container">
 
+            <section id="two-kinds">
+                <h2>Two kinds of screen</h2>
+                <p>An app can use either. Each lives in its own ECF cluster.</p>
+                <table>
+                <tr><th></th><th>Android's own controls</th><th><code>simple_widgets</code></th></tr>
+                <tr><td>Cluster</td><td><code>src/controls</code></td><td><code>android_shell</code></td></tr>
+                <tr><td>Drawn by</td><td>Android</td><td>cairo</td></tr>
+                <tr><td>Keyboard, Hebrew, copy and paste</td><td>Android's, ready to use</td><td>Not yet</td></tr>
+                <tr><td>Same code on a PC</td><td>No</td><td>Yes</td></tr>
+                <tr><td>In <code>eifphone.toml</code></td><td><code>controls = true</code></td><td><code>[native]</code> cairo libraries</td></tr>
+                </table>
+            </section>
+            <section id="controls">
+                <h2>Android's own controls</h2>
+                <p>Put <code>controls = true</code> under <code>[android]</code>. Build controls, show the top one, and let the phone run:</p>
+                <pre><code>create phone.make
+create l_column.make (phone.controls)
+create l_button.make (phone.controls, {STRING_32} &quot;Save&quot;, agent on_save)
+l_column.extend (l_button)
+phone.controls.show (l_column)
+phone.run_controls</code></pre>
+                <p>Your agents run on your own thread, one at a time. Keep them short: Android waits for the Eiffel thread when the app pauses or resumes.</p>
+                <p>Orders never wait for Android. A control's state, such as <code>text</code> in a text box, follows what the user does, one event behind.</p>
+                <p>An app that keeps building new controls should <code>discard</code> the old ones. Screens that are shown again need not.</p>
+            </section>
+            <section id="widgets">
+                <h2><code>simple_widgets</code> on the phone</h2>
+                <p>Build cairo once with <code>runtime/native/build_cairo.sh</code>. In your ECF, use <code>android_shell/simple_widgets_android.ecf</code> in place of <code>simple_widgets.ecf</code>. See <code>examples/widgets_demo</code>.</p>
+                <p>A tap becomes a press and a release. A finger that moves at once scrolls. A finger that holds still first, then moves, drags. Set the size with <code>theme.set_text_scale (window.density)</code>.</p>
+                <p>After <code>simple_shell</code> changes, run <code>runtime/native/gen_android_shell.py</code> to bring its stubs up to date.</p>
+            </section>
             <section id="setup">
                 <h2>What you need</h2>
                 <ul>
@@ -161,7 +192,10 @@ defines = [&quot;MYLIB_FAST&quot;, &quot;MYLIB_LEVEL=2&quot;]</code></pre>
                 <ul>
 <li><strong>The tool runs on Windows only.</strong> Phone apps run on Android 8.0 (API 26) or later, on ARM64 and x86_64.</li>
 <li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
-<li><strong>Not yet:</strong> text entry (the keyboard), and running cairo, shaping and widgets on the phone.</li>
+<li><strong>Android's own controls and <code>simple_widgets</code> have only run on the emulator.</strong> Nothing in 0.4.0 has run on a real phone yet. ARM builds are made but have not been started.</li>
+<li><strong>Typing Hebrew from a keyboard has not been tried.</strong> Hebrew and emoji do go through a real text box and come back intact, but the emulator's test input is limited to plain letters.</li>
+<li><strong><code>simple_widgets</code> on the phone is young.</strong> Text uses cairo's plain built-in font, so Hebrew does not work there yet. Its text box takes no typing from the on-screen keyboard. <code>android_shell</code> has no printer, spell checker or screen reader. Android's own controls have none of these gaps.</li>
+<li><strong>The general route reaches public methods that take nothing, a whole number, a true/false or a text.</strong> A method with other arguments needs its own class.</li>
 <li><strong>Read-aloud has only run on the emulator, which has no sound.</strong> The engine ran each sentence to its end, but nobody has heard it yet.</li>
 <li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>
 <li><strong>On-device tests have run on the emulator only.</strong> Speed, multi-touch, Home and return, and rotation were checked by hand on one real ARM phone.</li>

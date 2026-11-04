@@ -173,6 +173,34 @@ feature -- Project
 			assert ("two defines", p.native_defines.count = 2)
 		end
 
+	test_project_libraries_per_abi
+			-- [native] libraries: $ABI is filled in for each processor type, and asking
+			-- for one leaves the file's text ready for the next. (A build for two types
+			-- once linked the second against the first's libraries.)
+		local
+			p: EIFPHONE_PROJECT
+			l_dir: PATH
+		do
+			l_dir := project_folder ("nativeabi", Good_toml + "%N[native]%Nlibraries = [%"lib/$ABI/libx.a%"]%Ninclude = [%"inc/$ABI%"]%N")
+			create p.make
+			p.load (l_dir)
+			assert ("valid: " + p.errors.count.out, p.is_valid)
+			assert ("one library", p.native_libraries.count = 1)
+			assert ("one per-type include", p.native_abi_includes.count = 1)
+			assert ("first type", p.for_abi (p.native_libraries.first, "arm64-v8a").name.has_substring ("arm64-v8a"))
+			assert ("second type", p.for_abi (p.native_libraries.first, "x86_64").name.has_substring ("x86_64"))
+			assert ("text unchanged", p.native_libraries.first.has_substring ("$ABI"))
+		end
+
+	test_project_library_must_be_an_archive
+		local
+			p: EIFPHONE_PROJECT
+		do
+			create p.make
+			p.load (project_folder ("nativenota", Good_toml + "%N[native]%Nlibraries = [%"libx.so%"]%N"))
+			assert ("refused", not p.is_valid)
+		end
+
 	test_project_no_native_is_fine
 			-- Most apps have no [native] table.
 		local

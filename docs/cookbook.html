@@ -34,6 +34,36 @@
         <div class="container">
 
             <section>
+                <h2>Use a control that has no class</h2>
+                <p>Any control with a public constructor taking a Context works by name. The rating bar here has no class of its own.</p>
+                <pre><code>create l_stars.make_any (phone.controls, &quot;android.widget.RatingBar&quot;)
+l_stars.call_integer (&quot;setNumStars&quot;, 5)
+l_stars.listen (&quot;setOnRatingBarChangeListener&quot;, agent on_stars)
+l_stars.ask (&quot;getRating&quot;, agent on_rating)
+l_stars.set_on_failure (agent on_refused)</code></pre>
+                <p>A wrong class or method name is reported to <code>on_failure</code>. It does not stop the app.</p>
+            </section>
+            <section>
+                <h2>Show a list of any length</h2>
+                <p>Rows are asked for as they come into view, so 31,000 rows cost no more than 100.</p>
+                <pre><code>create l_list.make (phone.controls)
+l_list.set_row_text (agent verse_text)
+l_list.set_row_count (31000)
+l_list.set_on_select (agent on_verse)</code></pre>
+            </section>
+            <section>
+                <h2>Draw with a finger</h2>
+                <p>A canvas paints through Android's own Canvas: smooth lines, and text in any script. Ask for a repaint rather than painting from each point, and one frame covers them all.</p>
+                <pre><code>canvas.set_on_paint (agent paint)
+canvas.set_on_sweep (agent on_sweep)
+
+on_sweep (a_x, a_y: REAL_64)
+	do
+		points.extend ([a_x, a_y])
+		canvas.request_repaint
+	end</code></pre>
+            </section>
+            <section>
                 <h2>Keep frames coming while fingers move</h2>
                 <p>A busy touch screen can fill the queue faster than you drain it. Take events up to a limit, then show a frame.</p>
                 <pre><code>from until phone.lifecycle.is_destroyed loop

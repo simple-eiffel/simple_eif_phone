@@ -361,14 +361,14 @@ feature {NONE} -- Implementation
 			-- Controls in Android's own library that have no class in the controls cluster.
 		once
 			Result := <<"android.widget.ToggleButton", "android.widget.ImageButton", "android.widget.ImageView",
-				"android.widget.CalendarView", "android.widget.DatePicker", "android.widget.TimePicker",
-				"android.widget.NumberPicker", "android.widget.SearchView", "android.widget.AutoCompleteTextView",
-				"android.widget.MultiAutoCompleteTextView", "android.widget.Chronometer", "android.widget.TextClock",
-				"android.widget.CheckedTextView", "android.widget.RadioButton", "android.widget.QuickContactBadge",
-				"android.widget.GridView", "android.widget.ExpandableListView", "android.widget.GridLayout",
-				"android.widget.TableLayout", "android.widget.RelativeLayout", "android.widget.FrameLayout",
-				"android.widget.HorizontalScrollView", "android.widget.ViewFlipper", "android.widget.Toolbar",
-				"android.widget.VideoView", "android.webkit.WebView">>
+				"android.widget.Chronometer", "android.widget.TextClock", "android.widget.AutoCompleteTextView",
+				"android.widget.MultiAutoCompleteTextView", "android.widget.CheckedTextView", "android.widget.RadioButton",
+				"android.widget.QuickContactBadge", "android.widget.GridView", "android.widget.ExpandableListView",
+				"android.widget.GridLayout", "android.widget.TableLayout", "android.widget.RelativeLayout",
+				"android.widget.FrameLayout", "android.widget.HorizontalScrollView", "android.widget.ViewFlipper",
+				"android.widget.Toolbar", "android.widget.VideoView", "android.webkit.WebView",
+				"android.widget.SearchView", "android.widget.NumberPicker", "android.widget.TimePicker",
+				"android.widget.DatePicker", "android.widget.CalendarView">>
 		end
 
 	Verse: STRING_32

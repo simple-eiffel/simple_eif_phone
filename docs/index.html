@@ -44,15 +44,18 @@
                 <tr><th>Part</th><th>What it is</th><th>Compiled by</th></tr>
                 <tr><td><code>eifphone</code> (<code>tool/</code>)</td><td>Command-line tool: Eiffel project in, signed APK out.</td><td>EiffelStudio (Windows)</td></tr>
                 <tr><td><code>simple_eif_phone</code> (<code>src/</code>)</td><td>Library: the phone in phone terms (app life, touch, keys, screen, sizes, folders, packed files, log), all with contracts.</td><td>Gobo gec, then the Android NDK</td></tr>
+                <tr><td><code>src/controls/</code></td><td>Cluster: Android's own controls, as Eiffel classes. Any other control is reached by name.</td><td>Gobo gec, then the Android NDK</td></tr>
+                <tr><td><code>android_shell/</code></td><td>Cluster: runs <code>simple_widgets</code>, unchanged, on the phone, in place of <code>simple_shell</code>.</td><td>Gobo gec, then the Android NDK</td></tr>
                 <tr><td><code>runtime/</code></td><td>The fixed C glue and the Java helper scaffold. Apps never edit these.</td><td>Packaged by the tool</td></tr>
                 <tr><td><code>examples/</code></td><td><code>hello</code>, <code>touch_pad</code> (drawing demo), <code>read_aloud</code> (choose a file and hear it), <code>phone_tests</code> (on-device tests), <code>java_scaffold</code>, <code>touch_bench</code> (speed measures).</td><td></td></tr>
                 </table>
             </section>
             <section id="status">
                 <h2>Status</h2>
-                <p><strong>Version 0.3.0: early, working, not yet widely used.</strong></p>
+                <p><strong>Version 0.4.0: early, working, not yet widely used.</strong></p>
                 <ul>
-                <li>98 tool tests, 39 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
+                <li>101 tool tests, 57 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
+                <li>On the emulator, a scripted run of 45 steps drove real Android controls from Eiffel, and 10 more drove <code>simple_widgets</code> by touch.</li>
                 <li>On a real ARM phone, the touch pad took five fingers at once. Putting a full screen up took 1.8 ms on average and 6.5 ms at worst.</li>
                 <li>Random-input stress: 9,000 events on each of the fast and checked builds of the touch pad, with no crash.</li>
                 </ul>
@@ -62,7 +65,10 @@
                 <ul>
 <li><strong>The tool runs on Windows only.</strong> Phone apps run on Android 8.0 (API 26) or later, on ARM64 and x86_64.</li>
 <li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
-<li><strong>Not yet:</strong> text entry (the keyboard), and running cairo, shaping and widgets on the phone.</li>
+<li><strong>Android's own controls and <code>simple_widgets</code> have only run on the emulator.</strong> Nothing in 0.4.0 has run on a real phone yet. ARM builds are made but have not been started.</li>
+<li><strong>Typing Hebrew from a keyboard has not been tried.</strong> Hebrew and emoji do go through a real text box and come back intact, but the emulator's test input is limited to plain letters.</li>
+<li><strong><code>simple_widgets</code> on the phone is young.</strong> Text uses cairo's plain built-in font, so Hebrew does not work there yet. Its text box takes no typing from the on-screen keyboard. <code>android_shell</code> has no printer, spell checker or screen reader. Android's own controls have none of these gaps.</li>
+<li><strong>The general route reaches public methods that take nothing, a whole number, a true/false or a text.</strong> A method with other arguments needs its own class.</li>
 <li><strong>Read-aloud has only run on the emulator, which has no sound.</strong> The engine ran each sentence to its end, but nobody has heard it yet.</li>
 <li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>
 <li><strong>On-device tests have run on the emulator only.</strong> Speed, multi-touch, Home and return, and rotation were checked by hand on one real ARM phone.</li>

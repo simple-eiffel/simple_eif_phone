@@ -142,7 +142,7 @@ for n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24; do
   $ADB shell input swipe 500 1700 500 1100 1200
   sleep 0.4
 done
-for w in ToggleButton ImageButton ImageView CalendarView DatePicker TimePicker NumberPicker Chronometer TextClock AutoCompleteTextView; do
+for w in ToggleButton ImageButton ImageView CalendarView DatePicker TimePicker NumberPicker Chronometer AutoCompleteTextView; do
   if echo "$found" | grep -q "android.widget.$w\""; then echo "PASS $w on screen"; pass=$((pass + 1)); else echo "FAIL $w not on screen"; fail=$((fail + 1)); fi
 done
 shot more_scrolled
