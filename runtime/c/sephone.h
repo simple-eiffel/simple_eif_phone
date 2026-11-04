@@ -92,6 +92,10 @@
 #define SEPHONE_FILE_PICKED 43
 #define SEPHONE_FILE_CANCELLED 44
 #define SEPHONE_FILE_FAILED 45
+#define SEPHONE_KEYBOARD_TEXT 46
+#define SEPHONE_KEYBOARD_BACKSPACE 47
+#define SEPHONE_KEYBOARD_ENTER 48
+#define SEPHONE_KEYBOARD_CLOSED 49
 #define SEPHONE_CONTROL_CLICKED 50
 #define SEPHONE_CONTROL_CHANGED 51
 #define SEPHONE_CONTROL_ROWS 52
@@ -193,6 +197,7 @@ void sephone_speech_start(void);
 void sephone_speak(const char *text, const char *language);
 void sephone_speech_stop(void);
 void sephone_pick_file(const char *type);
+void sephone_keyboard(int show);
 void sephone_set_back_policy(int policy);
 int  sephone_back_policy(void);     /* RB-16 */
 void sephone_keep_screen_on(int on);

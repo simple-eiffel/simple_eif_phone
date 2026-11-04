@@ -15,7 +15,6 @@ feature {NONE} -- Initialization
 			l_theme: SW_THEME
 			l_root: SW_COLUMN
 			l_title: SW_LABEL
-			l_box: SW_TEXT_BOX
 		do
 			create l_theme.make_light
 			create window.make ("Widgets", 0, 0, 1080, 2400, l_theme)
@@ -23,12 +22,13 @@ feature {NONE} -- Initialization
 			window.phone.log.set_tag ("Eiffel")
 			create l_title.make ("simple_widgets on Android", {SW_PAINTER}.Role_ui, 20.0, True)
 			create status.make_ui ("Nothing tapped yet")
-			create l_box.make_single_line ("Text box")
+			create box.make_single_line ("")
 			create list.make (600.0)
 			create check_box.make ("A check box", False, Void)
 			create button.make_primary ("Tap me", Void)
 			check_box.set_on_change (agent on_check)
 			button.set_on_click (agent on_tap)
+			box.set_on_change (agent on_typed)
 			list.set_grow (1.0)
 			list.set_row_count (5000)
 			list.set_row_height (32.0 * window.density)
@@ -38,11 +38,12 @@ feature {NONE} -- Initialization
 			l_root.put (l_title)
 			l_root.put (status)
 			l_root.put (button)
-			l_root.put (l_box)
+			l_root.put (box)
 			l_root.put (check_box)
 			l_root.put (list)
 			window.set_root (l_root)
 			window.set_on_tick (agent on_tick)
+			window.set_wants_typing (agent takes_typing_at)
 			window.phone.log.info ("widgets: starting")
 			window.run
 		end
@@ -56,6 +57,7 @@ feature {NONE} -- Reactions
 			if beats = 2 then
 				say_place ("button", button)
 				say_place ("check", check_box)
+				say_place ("box", box)
 				say_place ("list", list)
 				window.phone.log.info ("widgets: frame " + beats.out)
 			end
@@ -71,6 +73,18 @@ feature {NONE} -- Reactions
 			window.phone.log.info ("widgets: at " + a_name + " "
 				+ (a_widget.x + a_widget.width / 2.0).truncated_to_integer.out + " "
 				+ (a_widget.y + a_widget.height / 2.0 + window.area_top).truncated_to_integer.out)
+		end
+
+	takes_typing_at (a_x, a_y: INTEGER): BOOLEAN
+			-- Does the widget at (`a_x', `a_y') take typing?
+		do
+			Result := attached window.root as al_root and then attached al_root.widget_at (a_x, a_y) as al_widget
+				and then al_widget.takes_typing
+		end
+
+	on_typed
+		do
+			window.phone.log.info ("widgets: box holds " + box.text.count.out + " letters")
 		end
 
 	on_check
@@ -105,6 +119,7 @@ feature {NONE} -- Implementation
 	list: SW_LIST
 	button: SW_BUTTON
 	check_box: SW_CHECK_BOX
+	box: SW_TEXT_BOX
 	taps, beats, last_first: INTEGER
 
 end

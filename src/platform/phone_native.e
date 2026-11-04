@@ -70,6 +70,9 @@ feature {NONE} -- Java services
 	c_speech_stop
 		external "C inline use %"sephone.h%"" alias "sephone_speech_stop();" end
 
+	c_keyboard (a_show: INTEGER)
+		external "C inline use %"sephone.h%"" alias "sephone_keyboard((int)$a_show);" end
+
 	c_pick_file (a_type: POINTER)
 		external "C inline use %"sephone.h%"" alias "sephone_pick_file((const char *)$a_type);" end
 

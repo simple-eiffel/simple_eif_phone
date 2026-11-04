@@ -59,7 +59,7 @@ static JNIEnv *s_env = NULL;   /* this thread's JNI handle; attached in android_
 static pthread_mutex_t s_mail_lock = PTHREAD_MUTEX_INITIALIZER;
 static sephone_note *s_mail_first = NULL, *s_mail_last = NULL;
 static int s_helper = 0;
-static jmethodID s_m_speech_start = NULL, s_m_speak = NULL, s_m_speech_stop = NULL, s_m_pick = NULL;
+static jmethodID s_m_speech_start = NULL, s_m_speak = NULL, s_m_speech_stop = NULL, s_m_pick = NULL, s_m_keyboard = NULL;
 
 /* ------------------------------------------------------------------ time */
 
@@ -381,7 +381,8 @@ static void sephone_java_setup(void)
 	s_m_speak = sephone_helper_method(env, cls, "sephoneSpeak", "([B[B)V");
 	s_m_speech_stop = sephone_helper_method(env, cls, "sephoneSpeechStop", "()V");
 	s_m_pick = sephone_helper_method(env, cls, "sephonePickFile", "([B)V");
-	if (s_m_speech_start && s_m_speak && s_m_speech_stop && s_m_pick) {
+	s_m_keyboard = sephone_helper_method(env, cls, "sephoneKeyboard", "(I)V");
+	if (s_m_speech_start && s_m_speak && s_m_speech_stop && s_m_pick && s_m_keyboard) {
 		if ((*env)->RegisterNatives(env, cls, &native, 1) == 0) s_helper = 1;
 		else (*env)->ExceptionClear(env);
 	}
@@ -438,6 +439,13 @@ void sephone_pick_file(const char *type)
 	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_pick, a);
 	sephone_clear_exception(s_env);
 	(*s_env)->DeleteLocalRef(s_env, a);
+}
+
+void sephone_keyboard(int show)
+{
+	if (!s_helper) return;
+	(*s_env)->CallVoidMethod(s_env, s_app->activity->clazz, s_m_keyboard, (jint)show);
+	sephone_clear_exception(s_env);
 }
 
 /* TEST ONLY (examples/phone_tests): exercise the overflow rule without a device driver. */

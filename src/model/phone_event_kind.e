@@ -53,6 +53,10 @@ feature -- Codes: services
 	Kind_file_picked: INTEGER = 43
 	Kind_file_cancelled: INTEGER = 44
 	Kind_file_failed: INTEGER = 45
+	Kind_keyboard_text: INTEGER = 46
+	Kind_keyboard_backspace: INTEGER = 47
+	Kind_keyboard_enter: INTEGER = 48
+	Kind_keyboard_closed: INTEGER = 49
 
 feature -- Codes: Android's controls
 
@@ -118,10 +122,16 @@ feature -- Families
 			Result := Kind_file_picked <= a_k and a_k <= Kind_file_failed
 		end
 
+	is_keyboard_kind (a_k: INTEGER): BOOLEAN
+			-- Is `a_k' from the phone's keyboard?
+		do
+			Result := Kind_keyboard_text <= a_k and a_k <= Kind_keyboard_closed
+		end
+
 	is_service_kind (a_k: INTEGER): BOOLEAN
 			-- Is `a_k' a result from a Java service?
 		do
-			Result := is_speech_kind (a_k) or is_file_kind (a_k)
+			Result := is_speech_kind (a_k) or is_file_kind (a_k) or is_keyboard_kind (a_k)
 		end
 
 feature -- Names
@@ -158,6 +168,10 @@ feature -- Names
 			when Kind_file_picked then Result := "file_picked"
 			when Kind_file_cancelled then Result := "file_cancelled"
 			when Kind_file_failed then Result := "file_failed"
+			when Kind_keyboard_text then Result := "keyboard_text"
+			when Kind_keyboard_backspace then Result := "keyboard_backspace"
+			when Kind_keyboard_enter then Result := "keyboard_enter"
+			when Kind_keyboard_closed then Result := "keyboard_closed"
 			when Kind_control_clicked then Result := "control_clicked"
 			when Kind_control_changed then Result := "control_changed"
 			when Kind_control_rows then Result := "control_rows"

@@ -85,6 +85,16 @@ feature -- Operation
 			hwnd := default_pointer
 		end
 
+	set_wants_typing (a_query: FUNCTION [TUPLE [INTEGER, INTEGER], BOOLEAN])
+			-- `a_query' says whether the widget at x and y takes typing. A tap on one
+			-- brings up the phone's keyboard, and a tap anywhere else puts it away.
+			-- Needs `java_helper = true' in eifphone.toml.
+		do
+			wants_typing := a_query
+		ensure
+			set: wants_typing = a_query
+		end
+
 	dispatch (a_type, a_x, a_y: INTEGER)
 			-- One event. The numbers are simple_shell's (SHELL_EVENTS).
 		deferred
@@ -303,7 +313,16 @@ feature {NONE} -- Android's events
 						dispatch (Event_window_release, a_event.x - area_left, a_event.y - area_top)
 					end
 					is_finger_down := False
+					refresh_keyboard (a_event.x - area_left, a_event.y - area_top)
 				end
+			when Kind_keyboard_text then
+				across a_event.text as ic loop
+					dispatch (Event_window_char, ic.code, 0)
+				end
+			when Kind_keyboard_backspace then
+				dispatch (Event_window_char, 8, 0)
+			when Kind_keyboard_enter then
+				dispatch (Event_window_char, 13, 0)
 			when Kind_touch_cancel then
 				if is_finger_down and finger_mode = Mode_dragging then
 					dispatch (Event_window_release, finger_x, finger_y)
@@ -338,6 +357,18 @@ feature {NONE} -- Android's events
 			if finger_is_undecided and then tick_ms - finger_time >= Hold_ms then
 				finger_mode := Mode_dragging
 				dispatch (Event_window_press, finger_x, finger_y)
+			end
+		end
+
+	refresh_keyboard (a_x, a_y: INTEGER)
+			-- Bring the keyboard up or put it away, to suit what was just touched at (`a_x', `a_y').
+		do
+			if attached wants_typing as al_query and then phone.keyboard.is_available then
+				if al_query.item ([a_x, a_y]) then
+					phone.keyboard.show
+				elseif phone.keyboard.is_shown then
+					phone.keyboard.hide
+				end
 			end
 		end
 
@@ -377,5 +408,7 @@ feature {NONE} -- Implementation
 			-- The part of the screen the app has, clear of the system bars.
 
 	backdrop_rgb: INTEGER
+
+	wants_typing: detachable FUNCTION [TUPLE [INTEGER, INTEGER], BOOLEAN]
 
 end

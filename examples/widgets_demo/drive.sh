@@ -15,7 +15,7 @@ pos () { $ADB logcat -d -s Eiffel:* | grep "widgets: at $1 " | tail -1 | sed "s/
 
 $ADB shell am force-stop $PKG
 $ADB logcat -c
-$ADB shell am start -n $PKG/android.app.NativeActivity > /dev/null
+$ADB shell am start -n $PKG/io.github.simple_eiffel.eifphone.EifPhoneActivity > /dev/null
 sleep 5
 check "app starts" "starting"
 check "the first frame reaches the screen" "frame "
@@ -28,6 +28,18 @@ check "a second tap" "tapped 2"
 shot w_tapped
 set -- $(pos check); $ADB shell input tap $1 $2
 check "a tap reaches a check box" "checked True"
+set -- $(pos box); $ADB shell input tap $1 $2
+sleep 2
+if $ADB shell dumpsys input_method | grep -q "mInputShown=true"; then echo "PASS the keyboard comes up"; pass=$((pass + 1)); else echo "FAIL the keyboard comes up"; fail=$((fail + 1)); fi
+shot w_keyboard
+$ADB shell input text 'hello'
+check "the phone's keyboard types into a drawn text box" "box holds 5 letters"
+$ADB shell input keyevent 67
+check "backspace" "box holds 4 letters"
+shot w_typed
+set -- $(pos check); $ADB shell input tap $1 $2
+sleep 2
+if $ADB shell dumpsys input_method | grep -q "mInputShown=false"; then echo "PASS leaving the text box puts the keyboard away"; pass=$((pass + 1)); else echo "FAIL leaving the text box puts the keyboard away"; fail=$((fail + 1)); fi
 set -- $(pos list); $ADB shell input tap $1 $2
 check "a tap selects a row" "row "
 shot w_row
@@ -36,7 +48,7 @@ $ADB shell input swipe $1 1800 $1 700 300; sleep 1
 shot w_scrolled
 check "a swipe scrolls the list" "first row [1-9]"
 $ADB shell input keyevent 3; sleep 2
-$ADB shell am start -n $PKG/android.app.NativeActivity > /dev/null; sleep 3
+$ADB shell am start -n $PKG/io.github.simple_eiffel.eifphone.EifPhoneActivity > /dev/null; sleep 3
 shot w_back
 if $ADB shell pidof $PKG > /dev/null; then echo "PASS survives leaving and returning"; pass=$((pass + 1)); else echo "FAIL survives leaving and returning"; fail=$((fail + 1)); fi
 $ADB shell input keyevent 4; sleep 3

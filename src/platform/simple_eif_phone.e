@@ -40,6 +40,7 @@ feature {NONE} -- Initialization
 			create log.make
 			create speech.make
 			create files.make
+			create keyboard.make
 			create controls.make (create {PHONE_CONTROL_LINK}.make)
 		ensure
 			claimed: handle_exists
@@ -175,6 +176,7 @@ feature -- Services
 	log: PHONE_LOG
 	speech: PHONE_SPEECH
 	files: PHONE_FILES
+	keyboard: PHONE_KEYBOARD
 	controls: PHONE_CONTROLS
 
 feature -- Behavior
@@ -250,6 +252,7 @@ feature {NONE} -- Implementation
 			touches.apply (e)
 			speech.apply (e)
 			files.apply (e)
+			keyboard.apply (e)
 			if is_metric_kind (k) then
 				metrics.refresh
 			end
