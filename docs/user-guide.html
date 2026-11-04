@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide - simple_eif_phone</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="images/logo.svg" alt="simple_eif_phone" class="logo">
+            <h1>simple_eif_phone</h1>
+            <p class="tagline">Write an Android app in Eiffel, and get a signed APK from one command.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+                <img src="https://img.shields.io/badge/Android-8.0%2B-green.svg" alt="Android 8.0 or later">
+                <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+            </div>
+        </div>
+    </header>
+    <nav>
+        <div class="container">
+            <a href="index.html">Overview</a>
+            <a href="quick.html">Quick API</a>
+            <a href="user-guide.html">User Guide</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="cookbook.html">Cookbook</a>
+            <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub</a>
+        </div>
+    </nav>
+    <main>
+        <div class="container">
+
+            <section id="setup">
+                <h2>What you need</h2>
+                <ul>
+                <li>Windows, with EiffelStudio to build the <code>eifphone</code> tool.</li>
+                <li>Gobo gec 26.10.</li>
+                <li>The Android SDK and NDK: NDK 30.0.16248370, build-tools 36.0.0, platform android-36.</li>
+                <li>A JDK.</li>
+                <li><code>simple_mml</code> 1.0.3 or later.</li>
+                </ul>
+                <p>Run <code>eifphone doctor</code> to see what it found.</p>
+                <h3>How the tool finds things</h3>
+                <p>It looks in this order:</p>
+                <ol>
+                <li>The standard variables: <code>JAVA_HOME</code>, <code>ANDROID_HOME</code> or <code>ANDROID_SDK_ROOT</code>, <code>ANDROID_NDK_HOME</code>, <code>GOBO</code>, <code>GOBO_LIBRARY</code>, <code>ISE_LIBRARY</code>, <code>SIMPLE_EIFFEL</code>.</li>
+                <li>The <code>D:\android</code> and <code>D:\prod</code> layout.</li>
+                <li>A project's <code>[tools]</code> table, which overrides both.</li>
+                </ol>
+            </section>
+            <section id="project">
+                <h2>Making a project</h2>
+                <pre><code>eifphone doctor                                       # are all the tools there?
+eifphone new myapp --id io.github.me.myapp --label &quot;My App&quot;
+eifphone build myapp                                  # signed APK in myapp/build/
+eifphone run myapp                                    # install on the device, start, show the log
+eifphone log myapp --crash                            # crash lines only
+eifphone test examples/phone_tests                    # on-device tests (start drive.sh first)</code></pre>
+                <h3><code>eifphone.toml</code></h3>
+                <pre><code>[app]
+id = &quot;io.github.me.myapp&quot;
+label = &quot;My App&quot;
+version_code = 1
+version_name = &quot;0.1.0&quot;
+
+[eiffel]
+ecf = &quot;app.ecf&quot;
+target = &quot;app&quot;
+
+[android]
+abis = [&quot;arm64-v8a&quot;, &quot;x86_64&quot;]
+min_sdk = 26
+target_sdk = 36
+java_helper = false
+
+# [signing] omitted = the shared debug key (its password is public by design).
+# debug_keystore = &quot;keys/debug.jks&quot;   # alone: keeps a project&#x27;s debug key elsewhere
+# Release: all three keys, and the password only through an environment variable.
+# keystore = &quot;D:/keys/myapp.jks&quot;
+# alias = &quot;myapp&quot;
+# password_env = &quot;MYAPP_KS_PASS&quot;</code></pre>
+                <p>An icon goes under <code>[app]</code> as <code>icon</code>. A missing icon file is a settings error.</p>
+            </section>
+            <section id="rules">
+                <h2>Rules worth knowing</h2>
+                <ul>
+                <li><strong>One thread.</strong> Android's lifecycle and input reach Eiffel through a pulled queue. Threads and SCOOP are not supported on the phone yet.</li>
+                <li><strong>One Eiffel system per process.</strong> If Android starts the app again while it is ending, the process ends and Android starts it fresh.</li>
+                <li><strong>Finish frames before waiting.</strong> <code>wait_for_event</code> requires <code>not screen.in_frame</code>.</li>
+                <li><strong>Apps save their own state on <code>paused</code>.</strong> <code>examples/touch_pad</code> shows how.</li>
+                <li><strong>Back:</strong> by default Android also handles it. <code>set_back_policy (Back_app)</code> keeps it for the app.</li>
+                <li><strong>Keep work between waits short.</strong> Android's UI thread can be waiting on your poll.</li>
+                <li><strong>Take frames while input keeps coming.</strong> Limit the events you take between frames, as <code>examples/touch_pad</code> does.</li>
+                </ul>
+            </section>
+            <section id="contracts">
+                <h2>Contracts and speed</h2>
+                <p><code>eifphone new</code> writes two targets:</p>
+                <ul>
+                <li><code>app</code> has every contract on, for development.</li>
+                <li><code>app_fast</code> has them off, for live drawing and other time-sensitive work. Set <code>target = "app_fast"</code> in <code>eifphone.toml</code>.</li>
+                </ul>
+                <p>Write the assertion setting on the target and on each library, as the template does. A target using <code>extends</code> kept contracts on.</p>
+                <p>Why it matters: on the emulator, one stroke segment of the touch pad took 17 ms at first. Removing a system call that Android's <code>setjmp</code> makes brought it to 1.4 ms, for every phone build. Turning contracts off brought it to 6 microseconds.</p>
+            </section>
+            <section id="signing">
+                <h2>Signing</h2>
+                <ul>
+                <li><strong>Debug:</strong> with no <code>[signing]</code> table, the tool uses a shared debug key. Its password is public by design, so never use it for a release.</li>
+                <li><strong>Release:</strong> give <code>keystore</code>, <code>alias</code> and <code>password_env</code>. The password travels only through that environment variable, never in a file or on a command line.</li>
+                </ul>
+            </section>
+            <section id="wifi">
+                <h2>Testing on a phone over Wi-Fi</h2>
+                <ol>
+                <li><strong>Settings, About phone, Software information:</strong> tap <strong>Build number</strong> 7 times.</li>
+                <li><strong>Settings, Developer options, Wireless debugging:</strong> turn it on, then choose <strong>Pair device with pairing code</strong>.</li>
+                <li>On the PC: <code>adb pair &lt;IP:port&gt; &lt;code&gt;</code>, then <code>adb connect &lt;IP:port&gt;</code>, using the port on the Wireless debugging screen.</li>
+                <li><code>eifphone run myapp --device &lt;IP:port&gt;</code></li>
+                </ol>
+                <div class="note">If the phone is on a VPN, Wireless debugging may show the VPN's address, which the PC can't reach. Turn the VPN off while pairing.</div>
+            </section>
+            <section id="trouble">
+                <h2>When something goes wrong</h2>
+                <ul>
+                <li><strong>A build stage failed:</strong> the tool prints the stage and its first error, and exits with code 4.</li>
+                <li><strong>A device is not ready:</strong> the tool names it, for example a phone that has not allowed this PC.</li>
+                <li><strong>More than one device:</strong> choose with <code>--device &lt;serial&gt;</code>.</li>
+                <li><strong>The app crashed:</strong> <code>eifphone log myapp --crash</code>.</li>
+                <li><strong>The pad or a live app feels slow:</strong> check that you built the <code>app_fast</code> target.</li>
+                </ul>
+            </section>
+            <section id="limits">
+                <h2>Known limitations</h2>
+                <ul>
+<li><strong>The tool runs on Windows only.</strong> Phone apps run on Android 8.0 (API 26) or later, on ARM64 and x86_64.</li>
+<li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
+<li><strong>Not yet:</strong> text entry (the keyboard), read-aloud, the file picker, SQLite, and running cairo, shaping and widgets on the phone.</li>
+<li><strong>An <code>adb</code> that never answers hangs the tool.</strong> The runner has no timeout. Stop the tool by hand if that happens.</li>
+<li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>
+<li><strong>On-device tests have run on the emulator only.</strong> Speed, multi-touch, Home and return, and rotation were checked by hand on one real ARM phone.</li>
+<li><strong>Two one-off failures are unexplained.</strong> <code>tap_arrives</code> failed once, in the first run after a stress session on a fresh emulator, then passed. One stress run stopped on a crash from a process that was not identified, and the same run passed when repeated.</li>
+</ul>
+            </section>
+
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Simple Eiffel. MIT License. <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub repository</a></p>
+        </div>
+    </footer>
+</body>
+</html>

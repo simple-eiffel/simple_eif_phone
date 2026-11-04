@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookbook - simple_eif_phone</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="images/logo.svg" alt="simple_eif_phone" class="logo">
+            <h1>simple_eif_phone</h1>
+            <p class="tagline">Write an Android app in Eiffel, and get a signed APK from one command.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+                <img src="https://img.shields.io/badge/Android-8.0%2B-green.svg" alt="Android 8.0 or later">
+                <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+            </div>
+        </div>
+    </header>
+    <nav>
+        <div class="container">
+            <a href="index.html">Overview</a>
+            <a href="quick.html">Quick API</a>
+            <a href="user-guide.html">User Guide</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="cookbook.html">Cookbook</a>
+            <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub</a>
+        </div>
+    </nav>
+    <main>
+        <div class="container">
+
+            <section>
+                <h2>Keep frames coming while fingers move</h2>
+                <p>A busy touch screen can fill the queue faster than you drain it. Take events up to a limit, then show a frame.</p>
+                <pre><code>from until phone.lifecycle.is_destroyed loop
+	phone.wait_for_event
+	handle
+	from
+		l_more := True
+		l_taken := 1
+	until
+		not l_more or l_taken &gt;= Events_per_frame or phone.lifecycle.is_destroyed
+	loop
+		phone.poll_event (0)
+		if phone.last_event.is_none then
+			l_more := False
+		else
+			handle
+			l_taken := l_taken + 1
+		end
+	end
+	if dirty and not phone.lifecycle.is_destroyed then
+		show
+	end
+end</code></pre>
+            </section>
+            <section>
+                <h2>Track each finger</h2>
+                <pre><code>inspect phone.last_event.kind
+when Kind_touch_down then
+	start_stroke (phone.last_event)     -- by phone.last_event.pointer_id
+when Kind_touch_move then
+	continue_stroke (phone.last_event)  -- phone.last_event.x, .y
+when Kind_touch_up then
+	finish_stroke (phone.last_event)
+when Kind_touch_cancel, Kind_focus_lost, Kind_window_lost then
+	forget_all_strokes
+else
+end</code></pre>
+                <p>Always handle <code>Kind_touch_cancel</code>: Android can take a touch back.</p>
+            </section>
+            <section>
+                <h2>Draw your own pixels</h2>
+                <p>Keep an ARGB32 image in a <code>MANAGED_POINTER</code>, then copy it to the screen in one call.</p>
+                <pre><code>if phone.screen.has_window then
+	phone.screen.begin_frame
+	if phone.screen.in_frame then
+		phone.screen.present_argb (l_pixels.item, l_width, l_height, l_width * 4)
+		phone.screen.end_frame
+	end
+end</code></pre>
+                <p>Stay ready for <code>in_frame</code> to be False: Android may refuse a frame.</p>
+            </section>
+            <section>
+                <h2>Save state when paused</h2>
+                <p>Android can end a paused app without warning, so save then.</p>
+                <pre><code>when Kind_paused then
+	save_strokes</code></pre><pre><code>save_path: STRING
+	do
+		Result := phone.storage.internal_path + &quot;/strokes.txt&quot;
+	end</code></pre>
+                <p>When reading the file back, guard the loop. <code>read_line</code> requires <code>file_readable</code>, which is False on an empty file.</p>
+                <pre><code>from until f.end_of_file or else not f.file_readable loop
+	f.read_line
+	-- use f.last_string
+end</code></pre>
+            </section>
+            <section>
+                <h2>Keep Back for the app</h2>
+                <pre><code>phone.set_back_policy (phone.Back_app)
+...
+when Kind_key_up then
+	if phone.last_event.key_code = Key_back then
+		if nothing_to_undo then
+			phone.finish
+		else
+			undo
+		end
+	end</code></pre>
+            </section>
+            <section>
+                <h2>Fit any screen</h2>
+                <pre><code>l_brush := phone.metrics.dp (6).max (2)        -- 6 dp in pixels
+l_top := phone.metrics.inset_top               -- clear of the status bar
+l_bottom := phone.metrics.height - phone.metrics.inset_bottom</code></pre>
+                <p>Rebuild your image on <code>Kind_window_resized</code> and <code>Kind_content_rect_changed</code>. Only redraw everything when the size really changed.</p>
+            </section>
+            <section>
+                <h2>Read a file packed in the APK</h2>
+                <pre><code>phone.assets.read_asset (&quot;fonts/title.bin&quot;)
+if attached phone.assets.last_asset as al_data then
+	use (al_data, phone.assets.last_asset_size)
+end</code></pre>
+            </section>
+            <section>
+                <h2>Write a line to the log</h2>
+                <pre><code>phone.log.set_tag (&quot;MyApp&quot;)
+phone.log.info (&quot;loaded &quot; + strokes.count.out + &quot; strokes&quot;)</code></pre>
+                <p>A tag holds at most 23 characters. Read the lines with <code>eifphone log myapp</code>.</p>
+            </section>
+
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Simple Eiffel. MIT License. <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub repository</a></p>
+        </div>
+    </footer>
+</body>
+</html>

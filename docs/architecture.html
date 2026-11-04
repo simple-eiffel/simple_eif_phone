@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture - simple_eif_phone</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="images/logo.svg" alt="simple_eif_phone" class="logo">
+            <h1>simple_eif_phone</h1>
+            <p class="tagline">Write an Android app in Eiffel, and get a signed APK from one command.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+                <img src="https://img.shields.io/badge/Android-8.0%2B-green.svg" alt="Android 8.0 or later">
+                <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+            </div>
+        </div>
+    </header>
+    <nav>
+        <div class="container">
+            <a href="index.html">Overview</a>
+            <a href="quick.html">Quick API</a>
+            <a href="user-guide.html">User Guide</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="cookbook.html">Cookbook</a>
+            <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub</a>
+        </div>
+    </nav>
+    <main>
+        <div class="container">
+
+            <section>
+                <h2>The layers</h2>
+                <pre><code> your app (Eiffel)
+      |
+ SIMPLE_EIF_PHONE   events, lifecycle, touches, screen, metrics, storage, assets, log
+      |
+ PHONE_NATIVE       the only class that calls C
+      |
+ runtime/c          sephone glue + Android&#x27;s native_app_glue
+      |
+ Android            NativeActivity</code></pre>
+                <p>The model classes (<code>PHONE_LIFECYCLE</code>, <code>PHONE_TOUCHES</code>, <code>PHONE_EVENT</code>) use no C, so their contracts and tests run on a PC too.</p>
+            </section>
+            <section>
+                <h2>How a build works</h2>
+                <pre><code> Eiffel --gec--&gt; C --NDK clang--&gt; one .so per processor type
+                                      |
+                 aapt2 + aapt --&gt; APK --&gt; zipalign (16 KB pages) --&gt; apksigner</code></pre>
+                <p>gec runs with <code>--cc=no --finalize</code>. A C file whose hash hasn't changed isn't recompiled. No compiler change was needed: gec's C compiled for Android as it stands.</p>
+            </section>
+            <section>
+                <h2>Design decisions</h2>
+                <h3>Eiffel owns the loop</h3>
+                <p>There are no callbacks into Eiffel. Android's events wait in a queue, and the app pulls them with <code>wait_for_event</code> or <code>poll_event</code>. A screen with a window and a lifecycle with a window always agree, because one command is applied per poll.</p>
+                <h3>The Back key is decided ahead of time</h3>
+                <p>With no callbacks, the app can't answer "did you handle this?" when Back arrives. So it sets a policy first.</p>
+                <h3>Self-drawn UI</h3>
+                <p>Apps draw their own pixels and hand them over with <code>present_argb</code>. Java stays out of the way: a small fixed helper is there only for what Android offers nowhere else.</p>
+                <h3>A fast <code>setjmp</code></h3>
+                <p>On Android, <code>setjmp</code> saves the signal mask, which is a system call. gec's C uses it in every assertion block and rescue. <code>runtime/c/sephone_fastjmp.h</code> maps it to <code>_setjmp</code> for every phone build.</p>
+                <h3>One Eiffel system per process</h3>
+                <p>Android can start a new activity in a process while the old one is ending. A second Eiffel system would overwrite the first one's state and abort in the garbage collector. So the first main claims the process. A later one waits up to 2 seconds, then ends the process, and Android starts the app fresh.</p>
+                <h3>Clean process end</h3>
+                <p>The app ends with <code>fflush</code> and <code>_exit</code>, not <code>exit</code>, because exit handlers can race Android's own threads.</p>
+                <h3>Release passwords</h3>
+                <p>A release password reaches <code>apksigner</code> only through an environment variable. The contracts on <code>EIFPHONE_KEYSTORE</code> forbid every other route.</p>
+            </section>
+
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Simple Eiffel. MIT License. <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub repository</a></p>
+        </div>
+    </footer>
+</body>
+</html>

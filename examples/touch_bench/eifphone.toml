@@ -1,0 +1,15 @@
+[app]
+id = "io.github.ljr1981.eifphone.touchbench"
+label = "Eiffel Phone Check"
+version_code = 1
+version_name = "0.1.0"
+
+[eiffel]
+ecf = "touch_bench.ecf"
+target = "phone_check"
+
+[android]
+abis = ["arm64-v8a", "x86_64"]
+min_sdk = 26
+target_sdk = 36
+java_helper = false

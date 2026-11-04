@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" name="phone_tests" uuid="A1F0C3D2-7B5E-4C19-8E2D-3F4A5B6C7D80">
+	<description>simple_eif_phone on-device tests (AC-7). Run with: eifphone test (see drive.sh).</description>
+	<target name="phone_tests">
+		<root class="PHONE_TESTS_APP" feature="make"/>
+		<option warning="warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<setting name="console_application" value="true"/>
+		<capability>
+			<void_safety support="all"/>
+		</capability>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf"/>
+		<cluster name="src" location=".\src\"/>
+	</target>
+</system>

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference - simple_eif_phone</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="images/logo.svg" alt="simple_eif_phone" class="logo">
+            <h1>simple_eif_phone</h1>
+            <p class="tagline">Write an Android app in Eiffel, and get a signed APK from one command.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+                <img src="https://img.shields.io/badge/Android-8.0%2B-green.svg" alt="Android 8.0 or later">
+                <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+            </div>
+        </div>
+    </header>
+    <nav>
+        <div class="container">
+            <a href="index.html">Overview</a>
+            <a href="quick.html">Quick API</a>
+            <a href="user-guide.html">User Guide</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="cookbook.html">Cookbook</a>
+            <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub</a>
+        </div>
+    </nav>
+    <main>
+        <div class="container">
+
+            <section>
+                <h2>API Reference</h2>
+                <p>Generated from the source, so the contracts here are the ones the code runs. <code>PHONE_NATIVE</code> is left out: nothing in it is public.</p>
+                <ul><li><a href="#simple_eif_phone">SIMPLE_EIF_PHONE</a></li>
+<li><a href="#phone_screen">PHONE_SCREEN</a></li>
+<li><a href="#phone_metrics">PHONE_METRICS</a></li>
+<li><a href="#phone_storage">PHONE_STORAGE</a></li>
+<li><a href="#phone_assets">PHONE_ASSETS</a></li>
+<li><a href="#phone_log">PHONE_LOG</a></li>
+<li><a href="#phone_event">PHONE_EVENT</a></li>
+<li><a href="#phone_event_kind">PHONE_EVENT_KIND</a></li>
+<li><a href="#phone_key_codes">PHONE_KEY_CODES</a></li>
+<li><a href="#phone_lifecycle">PHONE_LIFECYCLE</a></li>
+<li><a href="#phone_touches">PHONE_TOUCHES</a></li>
+<li><a href="#phone_rect">PHONE_RECT</a></li></ul>
+            </section>
+<section id="simple_eif_phone"><h2>SIMPLE_EIF_PHONE</h2><p>The app&#x27;s one handle on the phone. Eiffel owns the loop: `wait_for_event&#x27; / `poll_event&#x27; deliver `last_event&#x27;, and before they return, `lifecycle&#x27; and `touches&#x27; have already applied it. There are no callbacks into Eiffel: the C glue queues, Eiffel pulls. One handle per process; when the app&#x27;s root returns, the glue finishes the activity and ends the process (research D-012).</p>
+<h3>Constants</h3>
+<div class="feature"><h4>Back_system: INTEGER = 0</h4>
+<p>Android also handles Back (finishes the app); the key is still delivered.</p>
+</div>
+<div class="feature"><h4>Back_app: INTEGER = 1</h4>
+<p>Back is consumed; only the app reacts.</p>
+</div>
+<h3>Events</h3>
+<div class="feature"><h4>wait_for_event</h4>
+<p>Block until an event arrives; it becomes `last_event&#x27;.</p>
+<p><strong>Requires</strong></p><div class="clause">not_destroyed: not lifecycle.is_destroyed
+no_open_frame: not screen.in_frame</div>
+<p><strong>Ensures</strong></p><div class="clause">delivered: not last_event.is_none
+counted: delivery_count = old delivery_count + 1
+fresh_event: last_event /= old last_event
+kind_from_c: last_event.kind = c_cur_kind
+lifecycle_in_step: lifecycle.last_applied = last_event
+touches_in_step: touches.last_applied = last_event
+metrics_refreshed: is_metric_kind (last_event.kind) implies
+(metrics.width = screen.width and metrics.height = screen.height)
+drops_monotonic: dropped_event_count &gt;= old dropped_event_count</div>
+</div>
+<div class="feature"><h4>poll_event (a_timeout_ms: INTEGER)</h4>
+<p>Wait at most `a_timeout_ms&#x27;; `last_event&#x27; is none on timeout.</p>
+<p><strong>Requires</strong></p><div class="clause">timeout_ok: a_timeout_ms &gt;= 0
+not_destroyed: not lifecycle.is_destroyed
+no_open_frame: not screen.in_frame</div>
+<p><strong>Ensures</strong></p><div class="clause">counted_when_delivered: not last_event.is_none implies delivery_count = old delivery_count + 1
+nothing_taken_on_timeout: last_event.is_none implies delivery_count = old delivery_count
+kind_from_c: not last_event.is_none implies last_event.kind = c_cur_kind
+lifecycle_in_step: not last_event.is_none implies lifecycle.last_applied = last_event
+touches_in_step: not last_event.is_none implies touches.last_applied = last_event
+metrics_refreshed: is_metric_kind (last_event.kind) implies
+(metrics.width = screen.width and metrics.height = screen.height)
+timeout_changes_nothing: last_event.is_none implies
+(lifecycle.last_applied = old lifecycle.last_applied and touches.last_applied = old touches.last_applied)
+drops_monotonic: dropped_event_count &gt;= old dropped_event_count</div>
+</div>
+<div class="feature"><h4>delivery_count: INTEGER</h4>
+<p>Events delivered so far (the C side&#x27;s count of taken events).</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<div class="feature"><h4>is_metric_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Does an event of kind `a_k&#x27; make `metrics&#x27; re-read Android?</p>
+</div>
+<div class="feature"><h4>last_event: PHONE_EVENT</h4>
+<p>Most recent delivery (none before the first, or after a timeout).</p>
+</div>
+<div class="feature"><h4>dropped_event_count: INTEGER</h4>
+<p>Touch moves dropped on queue overflow so far (never lifecycle or key events).</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<h3>State</h3>
+<div class="feature"><h4>lifecycle: PHONE_LIFECYCLE</h4>
+<p>Where the app is in Android&#x27;s life, including `last_event&#x27;.</p>
+</div>
+<div class="feature"><h4>touches: PHONE_TOUCHES</h4>
+<p>Fingers down, including `last_event&#x27;.</p>
+</div>
+<div class="feature"><h4>handle_exists: BOOLEAN</h4>
+<p>Has this process claimed its platform handle?</p>
+</div>
+<h3>Services</h3>
+<div class="feature"><h4>screen: PHONE_SCREEN</h4>
+</div>
+<div class="feature"><h4>metrics: PHONE_METRICS</h4>
+</div>
+<div class="feature"><h4>storage: PHONE_STORAGE</h4>
+</div>
+<div class="feature"><h4>assets: PHONE_ASSETS</h4>
+</div>
+<div class="feature"><h4>log: PHONE_LOG</h4>
+</div>
+<h3>Behavior</h3>
+<div class="feature"><h4>back_policy: INTEGER</h4>
+<p>`Back_system&#x27; or `Back_app&#x27; (read from the C side, Phase 2 RB-16).</p>
+</div>
+<div class="feature"><h4>set_back_policy (a_policy: INTEGER)</h4>
+<p>Decide who handles the Back key from now on.</p>
+<p><strong>Requires</strong></p><div class="clause">valid: a_policy = Back_system or a_policy = Back_app</div>
+<p><strong>Ensures</strong></p><div class="clause">set: back_policy = a_policy</div>
+</div>
+<div class="feature"><h4>keep_screen_on: BOOLEAN</h4>
+<p>Is the screen kept from dimming?</p>
+</div>
+<div class="feature"><h4>set_keep_screen_on (a_on: BOOLEAN)</h4>
+<p>Keep the screen awake while the app is shown (or stop).</p>
+<p><strong>Ensures</strong></p><div class="clause">set: keep_screen_on = a_on</div>
+</div>
+<div class="feature"><h4>is_finishing: BOOLEAN</h4>
+<p>Has `finish&#x27; been asked for?</p>
+</div>
+<div class="feature"><h4>finish</h4>
+<p>Ask Android to end the app; `destroyed&#x27; follows.</p>
+<p><strong>Requires</strong></p><div class="clause">not_destroyed: not lifecycle.is_destroyed</div>
+<p><strong>Ensures</strong></p><div class="clause">finishing: is_finishing</div>
+</div>
+<h3>Invariant</h3><div class="clause">valid_back_policy: back_policy = Back_system or back_policy = Back_app
+services_consistent: screen.has_window = lifecycle.has_window</div>
+</section>
+<section id="phone_screen"><h2>PHONE_SCREEN</h2><p>The window&#x27;s pixel buffer, one frame at a time. `present_argb&#x27; copies a cairo-format ARGB32 image (native-endian 0xAARRGGBB words) to the screen at (0,0), clipped. It is the one seam a GPU path would replace (research D-005). `has_window&#x27; is the live truth from Android; see SIMPLE_EIF_PHONE&#x27;s invariant for why it matches the lifecycle model at every delivery.</p>
+<h3>Status</h3>
+<div class="feature"><h4>has_window: BOOLEAN</h4>
+<p>Does Android currently give us a window?</p>
+</div>
+<div class="feature"><h4>in_frame: BOOLEAN</h4>
+<p>Is the buffer locked for drawing?</p>
+</div>
+<div class="feature"><h4>width: INTEGER</h4>
+<p>Window width in pixels (0 without a window).</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<div class="feature"><h4>height: INTEGER</h4>
+<p>Window height in pixels (0 without a window).</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<h3>Frame</h3>
+<div class="feature"><h4>begin_frame</h4>
+<p>Lock the buffer. Android may refuse: check `in_frame&#x27; after.</p>
+<p><strong>Requires</strong></p><div class="clause">has_window: has_window
+not_nested: not in_frame</div>
+<p><strong>Ensures</strong></p><div class="clause">sized_when_locked: in_frame implies (width &gt; 0 and height &gt; 0)</div>
+</div>
+<div class="feature"><h4>fill_rect (a_x, a_y, a_w, a_h, a_rgb: INTEGER)</h4>
+<p>Fill a rectangle with color `a_rgb&#x27; (0xRRGGBB), clipped to the window.</p>
+<p><strong>Requires</strong></p><div class="clause">in_frame: in_frame
+size_ok: a_w &gt;= 0 and a_h &gt;= 0
+rgb_ok: 0 &lt;= a_rgb and a_rgb &lt;= 0xFFFFFF</div>
+<p><strong>Ensures</strong></p><div class="clause">still_in_frame: in_frame</div>
+</div>
+<div class="feature"><h4>present_argb (a_pixels: POINTER; a_width, a_height, a_stride: INTEGER)</h4>
+<p>Copy an ARGB32 image (`a_stride&#x27; bytes per row) to (0,0), clipped.</p>
+<p><strong>Requires</strong></p><div class="clause">in_frame: in_frame
+pixels_exist: a_pixels /= default_pointer
+size_ok: a_width &gt; 0 and a_height &gt; 0
+stride_ok: a_stride &gt;= a_width * 4</div>
+<p><strong>Ensures</strong></p><div class="clause">still_in_frame: in_frame</div>
+</div>
+<div class="feature"><h4>end_frame</h4>
+<p>Unlock and show the frame.</p>
+<p><strong>Requires</strong></p><div class="clause">in_frame: in_frame</div>
+<p><strong>Ensures</strong></p><div class="clause">not_in_frame: not in_frame</div>
+</div>
+<h3>Testing</h3>
+<div class="feature"><h4>peek (a_x, a_y: INTEGER): NATURAL_32</h4>
+<p>Window buffer word at (`a_x&#x27;, `a_y&#x27;); for byte-order tests only.</p>
+<p><strong>Requires</strong></p><div class="clause">in_frame: in_frame
+inside: 0 &lt;= a_x and a_x &lt; width and 0 &lt;= a_y and a_y &lt; height</div>
+</div>
+<h3>Invariant</h3><div class="clause">frame_needs_window: in_frame implies has_window</div>
+</section>
+<section id="phone_metrics"><h2>PHONE_METRICS</h2><p>Window size, density and the content rectangle: the area not covered by the status and navigation bars (or the on-screen keyboard). Insets are derived from it. Values are read from Android at `refresh&#x27;; SIMPLE_EIF_PHONE refreshes on window, configuration and content-rect events. Font scale is not here: the NDK has no getter for it (spec 03 A-6).</p>
+<h3>Access</h3>
+<div class="feature"><h4>width, height: INTEGER</h4>
+<p>Window size in pixels.</p>
+</div>
+<div class="feature"><h4>density_dpi: INTEGER</h4>
+<p>Screen density in dots per inch.</p>
+</div>
+<div class="feature"><h4>content_rect: PHONE_RECT</h4>
+<p>Area where content is seen by the user.</p>
+</div>
+<div class="feature"><h4>layout_is_rtl: BOOLEAN</h4>
+<p>Is the phone&#x27;s layout direction right-to-left?</p>
+</div>
+<div class="feature"><h4>inset_left: INTEGER</h4>
+<p>Pixels covered on the left.</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<div class="feature"><h4>inset_top: INTEGER</h4>
+<p>Pixels covered at the top (status bar).</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<div class="feature"><h4>inset_right: INTEGER</h4>
+<p>Pixels covered on the right.</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<div class="feature"><h4>inset_bottom: INTEGER</h4>
+<p>Pixels covered at the bottom (navigation bar, keyboard).</p>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<div class="feature"><h4>dp (a_dp: INTEGER): INTEGER</h4>
+<p>`a_dp&#x27; density-independent pixels in real pixels (160 dpi baseline).</p>
+<p><strong>Requires</strong></p><div class="clause">non_negative: a_dp &gt;= 0</div>
+<p><strong>Ensures</strong></p><div class="clause">non_negative: Result &gt;= 0</div>
+</div>
+<h3>Update</h3>
+<div class="feature"><h4>refresh</h4>
+<p>Re-read every value from Android. The content rectangle is clamped to the window; an empty one from Android (none reported yet) means the whole window (Phase 2 RB-4).</p>
+<p><strong>Ensures</strong></p><div class="clause">clamped_across: content_rect.left &gt;= 0 and content_rect.right &lt;= width
+clamped_down: content_rect.top &gt;= 0 and content_rect.bottom &lt;= height
+empty_is_full: (width &gt; 0 and height &gt; 0) implies (content_rect.width &gt; 0 and content_rect.height &gt; 0)
+density_known: (width &gt; 0 and height &gt; 0) implies (120 &lt;= density_dpi and density_dpi &lt;= 640)</div>
+</div>
+<h3>Invariant</h3><div class="clause">sizes_non_negative: width &gt;= 0 and height &gt;= 0 and density_dpi &gt;= 0
+insets_fit_across: width &gt; 0 implies inset_left + inset_right &lt;= width
+insets_fit_down: height &gt; 0 implies inset_top + inset_bottom &lt;= height
+content_inside_across: width &gt; 0 implies (content_rect.left &gt;= 0 and content_rect.right &lt;= width)
+content_inside_down: height &gt; 0 implies (content_rect.top &gt;= 0 and content_rect.bottom &lt;= height)</div>
+</section>
+<section id="phone_storage"><h2>PHONE_STORAGE</h2><p>App-private folders on the phone. `internal_path&#x27; always exists and needs no permission; `external_path&#x27; may be absent.</p>
+<h3>Access</h3>
+<div class="feature"><h4>internal_path: STRING_8</h4>
+<p>The app&#x27;s private files folder (UTF-8 path).</p>
+<p><strong>Ensures</strong></p><div class="clause">absolute: not Result.is_empty implies Result.starts_with (&quot;/&quot;)</div>
+</div>
+<div class="feature"><h4>external_path: detachable STRING_8</h4>
+<p>The app&#x27;s folder on shared storage, if Android offers one.</p>
+<p><strong>Ensures</strong></p><div class="clause">absolute: attached Result as al_r implies (not al_r.is_empty and al_r.starts_with (&quot;/&quot;))</div>
+</div>
+</section>
+<section id="phone_assets"><h2>PHONE_ASSETS</h2><p>Read-only files packed in the APK&#x27;s assets/ folder, by relative name (e.g. &quot;fonts/noto.ttf&quot;). Missing files are a normal outcome, not an error: `last_asset&#x27; is Void.</p>
+<h3>Status</h3>
+<div class="feature"><h4>has_asset (a_name: READABLE_STRING_8): BOOLEAN</h4>
+<p>Is `a_name&#x27; packed in the APK?</p>
+<p><strong>Requires</strong></p><div class="clause">name_ok: is_valid_name (a_name)</div>
+</div>
+<div class="feature"><h4>is_valid_name (a_name: READABLE_STRING_8): BOOLEAN</h4>
+<p>Non-empty and relative.</p>
+</div>
+<h3>Access</h3>
+<div class="feature"><h4>last_asset: detachable MANAGED_POINTER</h4>
+<p>Bytes from the last `read_asset&#x27;, or Void if it was missing.</p>
+</div>
+<div class="feature"><h4>last_asset_size: INTEGER</h4>
+<p>Byte count of `last_asset&#x27; (0 if missing).</p>
+</div>
+<h3>Basic operations</h3>
+<div class="feature"><h4>read_asset (a_name: READABLE_STRING_8)</h4>
+<p>Read `a_name&#x27; into `last_asset&#x27;.</p>
+<p><strong>Requires</strong></p><div class="clause">name_ok: is_valid_name (a_name)</div>
+<p><strong>Ensures</strong></p><div class="clause">found_has_data: attached last_asset as al_d implies al_d.count = last_asset_size
+missing_has_none: last_asset = Void implies last_asset_size = 0</div>
+</div>
+<h3>Invariant</h3><div class="clause">size_non_negative: last_asset_size &gt;= 0</div>
+</section>
+<section id="phone_log"><h2>PHONE_LOG</h2><p>Write lines to the Android log (logcat) under `tag&#x27;.</p>
+<h3>Access</h3>
+<div class="feature"><h4>tag: STRING_8</h4>
+<p>Log tag (what `adb logcat -s &lt;tag&gt;&#x27; filters on).</p>
+</div>
+<h3>Settings</h3>
+<div class="feature"><h4>set_tag (a_tag: READABLE_STRING_8)</h4>
+<p>Use `a_tag&#x27; from now on.</p>
+<p><strong>Requires</strong></p><div class="clause">not_empty: not a_tag.is_empty
+short: a_tag.count &lt;= 23</div>
+<p><strong>Ensures</strong></p><div class="clause">set: tag.same_string (a_tag)</div>
+</div>
+<h3>Output</h3>
+<div class="feature"><h4>debug_line (a_text: READABLE_STRING_8)</h4>
+<p>Debug-level line.</p>
+</div>
+<div class="feature"><h4>info (a_text: READABLE_STRING_8)</h4>
+<p>Info-level line.</p>
+</div>
+<div class="feature"><h4>warn (a_text: READABLE_STRING_8)</h4>
+<p>Warning-level line.</p>
+</div>
+<div class="feature"><h4>error (a_text: READABLE_STRING_8)</h4>
+<p>Error-level line.</p>
+</div>
+<h3>Invariant</h3><div class="clause">tag_ok: not tag.is_empty and tag.count &lt;= 23</div>
+</section>
+<section id="phone_event"><h2>PHONE_EVENT</h2><p>One thing that happened on the phone: a lifecycle change, a touch or a key. Immutable. Exactly one family per event (or none, for a timed poll that ran out). Touch coordinates are window pixels, rounded; they may lie outside the window while a finger drags off the edge.</p>
+<h3>Access</h3>
+<div class="feature"><h4>kind: INTEGER</h4>
+<p>Event code (see PHONE_EVENT_KIND).</p>
+</div>
+<div class="feature"><h4>time_ms: INTEGER</h4>
+<p>Android uptime in milliseconds, masked to 31 bits by the glue: never negative; wraps to 0 after 2^31 ms (~24.8 days). Compare two times by their difference, not by `&lt;&#x27;.</p>
+</div>
+<div class="feature"><h4>pointer_id: INTEGER</h4>
+<p>Finger id for touch events; -1 otherwise.</p>
+</div>
+<div class="feature"><h4>x, y: INTEGER</h4>
+<p>Window pixel position for touch events; 0 otherwise.</p>
+</div>
+<div class="feature"><h4>key_code: INTEGER</h4>
+<p>Android key code for key events; 0 otherwise.</p>
+</div>
+<h3>Status</h3>
+<div class="feature"><h4>is_none: BOOLEAN</h4>
+<p>Is this &quot;no event&quot;?</p>
+</div>
+<div class="feature"><h4>is_lifecycle: BOOLEAN</h4>
+<p>Is this a lifecycle event?</p>
+</div>
+<div class="feature"><h4>is_touch: BOOLEAN</h4>
+<p>Is this a touch event?</p>
+</div>
+<div class="feature"><h4>is_key: BOOLEAN</h4>
+<p>Is this a key event?</p>
+</div>
+<h3>Output</h3>
+<div class="feature"><h4>out_line: STRING_8</h4>
+<p>One-line description, e.g. &quot;touch_down id=0 x=12 y=40 t=1234&quot;.</p>
+<p><strong>Ensures</strong></p><div class="clause">starts_with_name: Result.starts_with (kind_name (kind))
+one_line: not Result.has (&#x27;%N&#x27;)</div>
+</div>
+<h3>Invariant</h3><div class="clause">valid_kind: is_valid_kind (kind)
+one_family: is_none.to_integer + is_lifecycle.to_integer + is_touch.to_integer + is_key.to_integer = 1
+touch_has_id: is_touch implies pointer_id &gt;= 0
+non_touch_no_id: not is_touch implies pointer_id = -1
+key_has_code: is_key = (key_code &gt; 0)
+non_touch_no_position: not is_touch implies (x = 0 and y = 0)
+time_non_negative: time_ms &gt;= 0</div>
+</section>
+<section id="phone_event_kind"><h2>PHONE_EVENT_KIND</h2><p>Event codes for SIMPLE_EIF_PHONE, grouped in three families: lifecycle (1-14), touch (20-23) and key (30-31). Code 0 means no event (a timed poll that ran out). The numbers are shared with the C glue (runtime/c/sephone.h); change both together.</p>
+<h3>Codes: none</h3>
+<div class="feature"><h4>Kind_none: INTEGER = 0</h4>
+<p>No event (timed poll ran out).</p>
+</div>
+<h3>Codes: lifecycle</h3>
+<div class="feature"><h4>Kind_started: INTEGER = 1</h4>
+</div>
+<div class="feature"><h4>Kind_resumed: INTEGER = 2</h4>
+</div>
+<div class="feature"><h4>Kind_paused: INTEGER = 3</h4>
+</div>
+<div class="feature"><h4>Kind_stopped: INTEGER = 4</h4>
+</div>
+<div class="feature"><h4>Kind_destroyed: INTEGER = 5</h4>
+</div>
+<div class="feature"><h4>Kind_window_ready: INTEGER = 6</h4>
+</div>
+<div class="feature"><h4>Kind_window_lost: INTEGER = 7</h4>
+</div>
+<div class="feature"><h4>Kind_window_resized: INTEGER = 8</h4>
+</div>
+<div class="feature"><h4>Kind_redraw_needed: INTEGER = 9</h4>
+</div>
+<div class="feature"><h4>Kind_focus_gained: INTEGER = 10</h4>
+</div>
+<div class="feature"><h4>Kind_focus_lost: INTEGER = 11</h4>
+</div>
+<div class="feature"><h4>Kind_configuration_changed: INTEGER = 12</h4>
+</div>
+<div class="feature"><h4>Kind_low_memory: INTEGER = 13</h4>
+</div>
+<div class="feature"><h4>Kind_content_rect_changed: INTEGER = 14</h4>
+</div>
+<h3>Codes: touch</h3>
+<div class="feature"><h4>Kind_touch_down: INTEGER = 20</h4>
+</div>
+<div class="feature"><h4>Kind_touch_move: INTEGER = 21</h4>
+</div>
+<div class="feature"><h4>Kind_touch_up: INTEGER = 22</h4>
+</div>
+<div class="feature"><h4>Kind_touch_cancel: INTEGER = 23</h4>
+</div>
+<h3>Codes: key</h3>
+<div class="feature"><h4>Kind_key_down: INTEGER = 30</h4>
+</div>
+<div class="feature"><h4>Kind_key_up: INTEGER = 31</h4>
+</div>
+<h3>Families</h3>
+<div class="feature"><h4>is_lifecycle_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; a lifecycle code?</p>
+</div>
+<div class="feature"><h4>is_touch_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; a touch code?</p>
+</div>
+<div class="feature"><h4>is_key_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; a key code?</p>
+</div>
+<div class="feature"><h4>is_valid_kind (a_k: INTEGER): BOOLEAN</h4>
+<p>Is `a_k&#x27; none or a member of exactly one family?</p>
+<p><strong>Ensures</strong></p><div class="clause">definition: Result = (a_k = Kind_none or is_lifecycle_kind (a_k) or is_touch_kind (a_k) or is_key_kind (a_k))
+families_disjoint: (is_lifecycle_kind (a_k).to_integer + is_touch_kind (a_k).to_integer + is_key_kind (a_k).to_integer) &lt;= 1</div>
+</div>
+<h3>Names</h3>
+<div class="feature"><h4>kind_name (a_k: INTEGER): STRING_8</h4>
+<p>Lower-case name of `a_k&#x27;, for logs and tests (e.g. &quot;touch_down&quot;).</p>
+<p><strong>Requires</strong></p><div class="clause">valid: is_valid_kind (a_k)</div>
+<p><strong>Ensures</strong></p><div class="clause">not_empty: not Result.is_empty</div>
+</div>
+</section>
+<section id="phone_key_codes"><h2>PHONE_KEY_CODES</h2><p>Android key codes the layer names (values from android/keycodes.h). Inherit it to compare `last_event.key_code&#x27; by name.</p>
+<h3>Codes</h3>
+<div class="feature"><h4>Key_home: INTEGER = 3</h4>
+</div>
+<div class="feature"><h4>Key_back: INTEGER = 4</h4>
+</div>
+<div class="feature"><h4>Key_dpad_up: INTEGER = 19</h4>
+</div>
+<div class="feature"><h4>Key_dpad_down: INTEGER = 20</h4>
+</div>
+<div class="feature"><h4>Key_dpad_left: INTEGER = 21</h4>
+</div>
+<div class="feature"><h4>Key_dpad_right: INTEGER = 22</h4>
+</div>
+<div class="feature"><h4>Key_volume_up: INTEGER = 24</h4>
+</div>
+<div class="feature"><h4>Key_volume_down: INTEGER = 25</h4>
+</div>
+<div class="feature"><h4>Key_enter: INTEGER = 66</h4>
+</div>
+<div class="feature"><h4>Key_del: INTEGER = 67</h4>
+</div>
+<div class="feature"><h4>Key_menu: INTEGER = 82</h4>
+</div>
+</section>
+<section id="phone_lifecycle"><h2>PHONE_LIFECYCLE</h2><p>Where the app is in Android&#x27;s life, built from delivered events. Pure Eiffel: no platform calls, so it is tested on the PC. Lenient by design (Phase 2 RB-17): it accepts any order of events Android may send and only refuses use after `destroyed&#x27;. Each event changes exactly the state its kind names (per-kind frame clauses). `resumed&#x27; also sets `is_started&#x27; (Android always starts before it resumes), so the model stays consistent even if an event is lost.</p>
+<h3>Status</h3>
+<div class="feature"><h4>is_started: BOOLEAN</h4>
+<p>Between `started&#x27; and `stopped&#x27;?</p>
+</div>
+<div class="feature"><h4>is_resumed: BOOLEAN</h4>
+<p>Between `resumed&#x27; and `paused&#x27; (in the foreground)?</p>
+</div>
+<div class="feature"><h4>has_window: BOOLEAN</h4>
+<p>Between `window_ready&#x27; and `window_lost&#x27;?</p>
+</div>
+<div class="feature"><h4>has_focus: BOOLEAN</h4>
+<p>Between `focus_gained&#x27; and `focus_lost&#x27;?</p>
+</div>
+<div class="feature"><h4>is_destroyed: BOOLEAN</h4>
+<p>Has `destroyed&#x27; been applied? (final)</p>
+</div>
+<div class="feature"><h4>window_generation: INTEGER</h4>
+<p>Number of `window_ready&#x27; events so far; lets apps drop caches tied to an older window.</p>
+</div>
+<div class="feature"><h4>last_applied: detachable PHONE_EVENT</h4>
+<p>Most recent event passed to `apply&#x27; (any family).</p>
+</div>
+<div class="feature"><h4>affects_state (a_k: INTEGER): BOOLEAN</h4>
+<p>Does lifecycle code `a_k&#x27; change this model?</p>
+</div>
+<h3>Element change</h3>
+<div class="feature"><h4>apply (a_e: PHONE_EVENT)</h4>
+<p>Update the model for `a_e&#x27;. Touch, key and the non-state lifecycle events (resized, redraw, configuration, low memory, content rect) change nothing but `last_applied&#x27;.</p>
+<p><strong>Requires</strong></p><div class="clause">not_destroyed: not is_destroyed</div>
+<p><strong>Ensures</strong></p><div class="clause">recorded: last_applied = a_e
+started: a_e.kind = Kind_started implies is_started
+started_frame: a_e.kind = Kind_started implies
+(is_resumed = old is_resumed and has_window = old has_window and has_focus = old has_focus)
+resumed: a_e.kind = Kind_resumed implies (is_started and is_resumed)
+resumed_frame: a_e.kind = Kind_resumed implies (has_window = old has_window and has_focus = old has_focus)
+paused: a_e.kind = Kind_paused implies not is_resumed
+paused_frame: a_e.kind = Kind_paused implies
+(is_started = old is_started and has_window = old has_window and has_focus = old has_focus)
+stopped: a_e.kind = Kind_stopped implies (not is_started and not is_resumed)
+stopped_frame: a_e.kind = Kind_stopped implies (has_window = old has_window and has_focus = old has_focus)
+window_in: a_e.kind = Kind_window_ready implies (has_window and window_generation = old window_generation + 1)
+window_in_frame: a_e.kind = Kind_window_ready implies
+(is_started = old is_started and is_resumed = old is_resumed and has_focus = old has_focus)
+window_out: a_e.kind = Kind_window_lost implies not has_window
+window_out_frame: a_e.kind = Kind_window_lost implies
+(is_started = old is_started and is_resumed = old is_resumed and has_focus = old has_focus)
+focus_in: a_e.kind = Kind_focus_gained implies has_focus
+focus_out: a_e.kind = Kind_focus_lost implies not has_focus
+focus_frame: (a_e.kind = Kind_focus_gained or a_e.kind = Kind_focus_lost) implies
+(is_started = old is_started and is_resumed = old is_resumed and has_window = old has_window)
+destroyed: a_e.kind = Kind_destroyed implies (is_destroyed and not is_started and not has_window and not has_focus)
+destroyed_only_by_destroy: a_e.kind /= Kind_destroyed implies not is_destroyed
+generation_only_on_window_ready: a_e.kind /= Kind_window_ready implies window_generation = old window_generation
+others_unchanged: not affects_state (a_e.kind) implies
+(is_started = old is_started and is_resumed = old is_resumed and has_window = old has_window
+and has_focus = old has_focus and is_destroyed = old is_destroyed)</div>
+</div>
+<h3>Invariant</h3><div class="clause">resumed_implies_started: is_resumed implies is_started
+destroyed_is_final: is_destroyed implies not (is_started or is_resumed or has_window or has_focus)
+generation_non_negative: window_generation &gt;= 0</div>
+</section>
+<section id="phone_touches"><h2>PHONE_TOUCHES</h2><p>The fingers currently on the glass, by pointer id, with their last positions. Built from delivered touch events. Pure Eiffel, PC-tested. A move for an unknown id (its down was lost) is ignored; any `touch_cancel&#x27; clears every finger.</p>
+<h3>Model</h3>
+<div class="feature"><h4>active_ids: MML_SET [INTEGER]</h4>
+<p>Ids of the fingers currently down.</p>
+</div>
+<div class="feature"><h4>xs_model: MML_MAP [INTEGER, INTEGER]</h4>
+<p>Last x of each finger down, by id (Phase 2 RB-12).</p>
+</div>
+<div class="feature"><h4>ys_model: MML_MAP [INTEGER, INTEGER]</h4>
+<p>Last y of each finger down, by id (Phase 2 RB-12).</p>
+</div>
+<h3>Access</h3>
+<div class="feature"><h4>count: INTEGER</h4>
+<p>Number of fingers down.</p>
+</div>
+<div class="feature"><h4>is_active (a_id: INTEGER): BOOLEAN</h4>
+<p>Is finger `a_id&#x27; down?</p>
+<p><strong>Ensures</strong></p><div class="clause">definition: Result = active_ids [a_id]</div>
+</div>
+<div class="feature"><h4>x_of (a_id: INTEGER): INTEGER</h4>
+<p>Last x of finger `a_id&#x27;.</p>
+<p><strong>Requires</strong></p><div class="clause">active: is_active (a_id)</div>
+<p><strong>Ensures</strong></p><div class="clause">definition: Result = xs_model [a_id]</div>
+</div>
+<div class="feature"><h4>y_of (a_id: INTEGER): INTEGER</h4>
+<p>Last y of finger `a_id&#x27;.</p>
+<p><strong>Requires</strong></p><div class="clause">active: is_active (a_id)</div>
+<p><strong>Ensures</strong></p><div class="clause">definition: Result = ys_model [a_id]</div>
+</div>
+<div class="feature"><h4>last_applied: detachable PHONE_EVENT</h4>
+<p>Most recent event passed to `apply&#x27; (any family).</p>
+</div>
+<h3>Element change</h3>
+<div class="feature"><h4>apply (a_e: PHONE_EVENT)</h4>
+<p>Update the fingers for `a_e&#x27;. Losing the window or focus, or being destroyed, lifts every finger (Phase 2 RB-11: Android is not known to send a cancel then). Other non-touch events change nothing but `last_applied&#x27;.</p>
+<p><strong>Ensures</strong></p><div class="clause">recorded: last_applied = a_e
+down: a_e.kind = Kind_touch_down implies
+(active_ids |=| (old active_ids &amp; a_e.pointer_id) and x_of (a_e.pointer_id) = a_e.x and y_of (a_e.pointer_id) = a_e.y)
+down_positions: a_e.kind = Kind_touch_down implies
+(xs_model |=| (old xs_model).updated (a_e.pointer_id, a_e.x) and ys_model |=| (old ys_model).updated (a_e.pointer_id, a_e.y))
+move: (a_e.kind = Kind_touch_move and old is_active (a_e.pointer_id)) implies
+(active_ids |=| old active_ids and x_of (a_e.pointer_id) = a_e.x and y_of (a_e.pointer_id) = a_e.y)
+move_positions: (a_e.kind = Kind_touch_move and old is_active (a_e.pointer_id)) implies
+(xs_model |=| (old xs_model).updated (a_e.pointer_id, a_e.x) and ys_model |=| (old ys_model).updated (a_e.pointer_id, a_e.y))
+stray_move_ignored: (a_e.kind = Kind_touch_move and not old is_active (a_e.pointer_id)) implies
+(active_ids |=| old active_ids and xs_model |=| old xs_model and ys_model |=| old ys_model)
+up: a_e.kind = Kind_touch_up implies active_ids |=| (old active_ids / a_e.pointer_id)
+up_positions: a_e.kind = Kind_touch_up implies
+(xs_model |=| (old xs_model).removed (a_e.pointer_id) and ys_model |=| (old ys_model).removed (a_e.pointer_id))
+cancel: a_e.kind = Kind_touch_cancel implies active_ids.is_empty
+cleared: (a_e.kind = Kind_window_lost or a_e.kind = Kind_focus_lost or a_e.kind = Kind_destroyed) implies active_ids.is_empty
+non_touch_unchanged: (not a_e.is_touch and not clears_touches (a_e.kind)) implies
+(active_ids |=| old active_ids and xs_model |=| old xs_model and ys_model |=| old ys_model)</div>
+</div>
+<div class="feature"><h4>clears_touches (a_k: INTEGER): BOOLEAN</h4>
+<p>Does a non-touch event of kind `a_k&#x27; lift every finger?</p>
+</div>
+<h3>Invariant</h3><div class="clause">count_matches_model: count = active_ids.count
+positions_cover_ids: xs_model.domain |=| active_ids and ys_model.domain |=| active_ids</div>
+</section>
+<section id="phone_rect"><h2>PHONE_RECT</h2><p>A pixel rectangle: left/top inclusive, right/bottom exclusive. Immutable.</p>
+<h3>Access</h3>
+<div class="feature"><h4>left, top, right, bottom: INTEGER</h4>
+</div>
+<div class="feature"><h4>width: INTEGER</h4>
+<p>`right&#x27; - `left&#x27;.</p>
+<p><strong>Ensures</strong></p><div class="clause">definition: Result = right - left</div>
+</div>
+<div class="feature"><h4>height: INTEGER</h4>
+<p>`bottom&#x27; - `top&#x27;.</p>
+<p><strong>Ensures</strong></p><div class="clause">definition: Result = bottom - top</div>
+</div>
+<h3>Invariant</h3><div class="clause">ordered: left &lt;= right and top &lt;= bottom</div>
+</section>
+
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Simple Eiffel. MIT License. <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub repository</a></p>
+        </div>
+    </footer>
+</body>
+</html>

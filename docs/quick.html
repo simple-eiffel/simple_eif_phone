@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick API - simple_eif_phone</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="images/logo.svg" alt="simple_eif_phone" class="logo">
+            <h1>simple_eif_phone</h1>
+            <p class="tagline">Write an Android app in Eiffel, and get a signed APK from one command.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+                <img src="https://img.shields.io/badge/Android-8.0%2B-green.svg" alt="Android 8.0 or later">
+                <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+            </div>
+        </div>
+    </header>
+    <nav>
+        <div class="container">
+            <a href="index.html">Overview</a>
+            <a href="quick.html">Quick API</a>
+            <a href="user-guide.html">User Guide</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="cookbook.html">Cookbook</a>
+            <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub</a>
+        </div>
+    </nav>
+    <main>
+        <div class="container">
+
+            <section>
+                <h2>Commands</h2>
+                <pre><code>eifphone doctor                                       # are all the tools there?
+eifphone new myapp --id io.github.me.myapp --label &quot;My App&quot;
+eifphone build myapp                                  # signed APK in myapp/build/
+eifphone run myapp                                    # install on the device, start, show the log
+eifphone log myapp --crash                            # crash lines only
+eifphone test examples/phone_tests                    # on-device tests (start drive.sh first)</code></pre>
+                <p>Options:</p>
+                <pre><code>eifphone new     &lt;dir&gt; --id &lt;app.id&gt; [--label &lt;text&gt;]
+eifphone build   [&lt;dir&gt;] [--abi arm64-v8a|x86_64] [--clean]
+eifphone install [&lt;dir&gt;] [--device &lt;serial&gt;]
+eifphone run     [&lt;dir&gt;] [--device &lt;serial&gt;]
+eifphone log     [&lt;dir&gt;] [--crash] [--device &lt;serial&gt;]
+eifphone test    [&lt;dir&gt;] [--device &lt;serial&gt;]</code></pre>
+                <h3>Exit codes</h3>
+                <table>
+<tr><th>Code</th><th>Meaning</th></tr>
+<tr><td>0</td><td>OK</td></tr>
+<tr><td>1</td><td>a tool is missing, or a test failed</td></tr>
+<tr><td>2</td><td>bad arguments or an invalid project</td></tr>
+<tr><td>3</td><td>a version pin doesn't match</td></tr>
+<tr><td>4</td><td>a build stage failed (the stage and its first error are printed)</td></tr>
+<tr><td>5</td><td>a device or install problem</td></tr>
+</table>
+            </section>
+            <section>
+                <h2>A first app</h2>
+                <pre><code>class APP_MAIN
+inherit PHONE_EVENT_KIND
+create make
+feature {NONE}
+	make
+		do
+			create phone.make
+			from until phone.lifecycle.is_destroyed loop
+				phone.wait_for_event        -- Eiffel owns the loop; no callbacks
+				inspect phone.last_event.kind
+				when Kind_window_ready, Kind_window_resized, Kind_redraw_needed then draw
+				when Kind_touch_down then phone.log.info (phone.last_event.out_line)
+				else
+				end
+			end
+		end
+
+	draw
+		do
+			if phone.screen.has_window then
+				phone.screen.begin_frame     -- Android may refuse: check in_frame
+				if phone.screen.in_frame then
+					phone.screen.fill_rect (0, 0, phone.screen.width, phone.screen.height, 0x14161C)
+					phone.screen.end_frame
+				end
+			end
+		end
+
+	phone: SIMPLE_EIF_PHONE
+end</code></pre>
+            </section>
+            <section>
+                <h2>What the phone object gives you</h2>
+                <table>
+                <tr><th>Call</th><th>Gives you</th></tr>
+                <tr><td><code>phone.wait_for_event</code>, <code>phone.poll_event (ms)</code></td><td>The next event, in <code>phone.last_event</code></td></tr>
+                <tr><td><code>phone.lifecycle</code></td><td>Started, resumed, has a window, has focus, destroyed</td></tr>
+                <tr><td><code>phone.touches</code></td><td>Every finger now down, by pointer id</td></tr>
+                <tr><td><code>phone.screen</code></td><td>Frames: <code>begin_frame</code>, <code>fill_rect</code>, <code>present_argb</code>, <code>end_frame</code></td></tr>
+                <tr><td><code>phone.metrics</code></td><td>Size, density, system-bar insets, <code>dp</code></td></tr>
+                <tr><td><code>phone.storage</code></td><td>The app's private folder, and its external folder if there is one</td></tr>
+                <tr><td><code>phone.assets</code></td><td>Files packed into the APK</td></tr>
+                <tr><td><code>phone.log</code></td><td>Lines to the Android log</td></tr>
+                <tr><td><code>phone.set_back_policy</code>, <code>set_keep_screen_on</code>, <code>finish</code></td><td>Back key, screen timeout, leaving the app</td></tr>
+                </table>
+                <p>Every feature and contract is in the <a href="api-reference.html">API Reference</a>.</p>
+            </section>
+
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Simple Eiffel. MIT License. <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub repository</a></p>
+        </div>
+    </footer>
+</body>
+</html>

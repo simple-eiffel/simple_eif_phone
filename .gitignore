@@ -1,0 +1,25 @@
+gen/
+out/
+EIFGENs/
+build/
+tool/testing/tmp/
+
+# Signing keys and built apps never go in the repo
+*.jks
+*.keystore
+*.apk
+*.aab
+*.idsig
+keys/
+
+# Logs and test leftovers
+*.log
+*.melted
+*.epr
+
+# Private project notes: stay on this PC
+.eiffel-workflow/
+CHRONICLE.md
+
+# Built tool: attached to releases, not stored in the repo
+bin/

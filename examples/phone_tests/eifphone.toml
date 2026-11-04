@@ -1,0 +1,15 @@
+[app]
+id = "io.github.ljr1981.eifphone.tests"
+label = "Eiffel Phone Tests"
+version_code = 1
+version_name = "0.1.0"
+
+[eiffel]
+ecf = "phone_tests.ecf"
+target = "phone_tests"
+
+[android]
+abis = ["arm64-v8a", "x86_64"]
+min_sdk = 26
+target_sdk = 36
+java_helper = false

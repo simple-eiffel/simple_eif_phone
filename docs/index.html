@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overview - simple_eif_phone</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="images/logo.svg" alt="simple_eif_phone" class="logo">
+            <h1>simple_eif_phone</h1>
+            <p class="tagline">Write an Android app in Eiffel, and get a signed APK from one command.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+                <img src="https://img.shields.io/badge/Android-8.0%2B-green.svg" alt="Android 8.0 or later">
+                <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+            </div>
+        </div>
+    </header>
+    <nav>
+        <div class="container">
+            <a href="index.html">Overview</a>
+            <a href="quick.html">Quick API</a>
+            <a href="user-guide.html">User Guide</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="cookbook.html">Cookbook</a>
+            <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub</a>
+        </div>
+    </nav>
+    <main>
+        <div class="container">
+
+            <section id="overview">
+                <h2>Overview</h2>
+                <p><strong>simple_eif_phone</strong> lets you write a whole Android app in Eiffel. One command turns an Eiffel project into a signed APK, with no Gradle and no Android Studio.</p>
+                <p>Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.</p>
+            </section>
+            <section id="parts">
+                <h2>What's here</h2>
+                <table>
+                <tr><th>Part</th><th>What it is</th><th>Compiled by</th></tr>
+                <tr><td><code>eifphone</code> (<code>tool/</code>)</td><td>Command-line tool: Eiffel project in, signed APK out.</td><td>EiffelStudio (Windows)</td></tr>
+                <tr><td><code>simple_eif_phone</code> (<code>src/</code>)</td><td>Library: the phone in phone terms (app life, touch, keys, screen, sizes, folders, packed files, log), all with contracts.</td><td>Gobo gec, then the Android NDK</td></tr>
+                <tr><td><code>runtime/</code></td><td>The fixed C glue and the Java helper scaffold. Apps never edit these.</td><td>Packaged by the tool</td></tr>
+                <tr><td><code>examples/</code></td><td><code>hello</code>, <code>touch_pad</code> (drawing demo), <code>phone_tests</code> (on-device tests), <code>java_scaffold</code>, <code>touch_bench</code> (speed measures).</td><td></td></tr>
+                </table>
+            </section>
+            <section id="status">
+                <h2>Status</h2>
+                <p><strong>Version 0.1.0: early, working, not yet widely used.</strong></p>
+                <ul>
+                <li>88 tool tests, 33 logic tests and 18 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
+                <li>On a real ARM phone, the touch pad took five fingers at once. Putting a full screen up took 1.8 ms on average and 6.5 ms at worst.</li>
+                <li>Random-input stress: 9,000 events on each of the fast and checked builds of the touch pad, with no crash.</li>
+                </ul>
+            </section>
+            <section id="limits">
+                <h2>Known limitations</h2>
+                <ul>
+<li><strong>The tool runs on Windows only.</strong> Phone apps run on Android 8.0 (API 26) or later, on ARM64 and x86_64.</li>
+<li><strong>One thread.</strong> Threads and SCOOP are not supported on the phone yet.</li>
+<li><strong>Not yet:</strong> text entry (the keyboard), read-aloud, the file picker, SQLite, and running cairo, shaping and widgets on the phone.</li>
+<li><strong>An <code>adb</code> that never answers hangs the tool.</strong> The runner has no timeout. Stop the tool by hand if that happens.</li>
+<li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>
+<li><strong>On-device tests have run on the emulator only.</strong> Speed, multi-touch, Home and return, and rotation were checked by hand on one real ARM phone.</li>
+<li><strong>Two one-off failures are unexplained.</strong> <code>tap_arrives</code> failed once, in the first run after a stress session on a fresh emulator, then passed. One stress run stopped on a crash from a process that was not identified, and the same run passed when repeated.</li>
+</ul>
+            </section>
+            <section id="next">
+                <h2>Where to go next</h2>
+                <ul>
+                <li><a href="quick.html">Quick API</a>: commands, the project file and a first app.</li>
+                <li><a href="user-guide.html">User Guide</a>: setup, signing, contracts and speed, testing on a phone.</li>
+                <li><a href="cookbook.html">Cookbook</a>: saving state, drawing pixels, reading packed files.</li>
+                </ul>
+            </section>
+
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Simple Eiffel. MIT License. <a href="https://github.com/simple-eiffel/simple_eif_phone">GitHub repository</a></p>
+        </div>
+    </footer>
+</body>
+</html>

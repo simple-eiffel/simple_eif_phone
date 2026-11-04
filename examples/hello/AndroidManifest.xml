@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.ljr1981.eifphone.hello"
+    android:versionCode="2"
+    android:versionName="0.1.0">
+    <application
+        android:label="Eiffel Hello"
+        android:hasCode="false"
+        android:extractNativeLibs="true">
+        <activity
+            android:name="android.app.NativeActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|layoutDirection|density|fontScale|locale"
+            android:theme="@android:style/Theme.Black.NoTitleBar">
+            <meta-data android:name="android.app.lib_name" android:value="hello" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" name="touch_bench" uuid="D7E3A914-2B6C-4F50-8A1D-90B1C2D3E4F5">
+	<description>Measures the touch pad's hot paths on a device: event delivery, drawing, present, full redraw, rescue.</description>
+	<target name="touch_bench">
+		<description>Every contract on, to measure what they cost.</description>
+		<root class="TOUCH_BENCH_APP" feature="make"/>
+		<option warning="warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<setting name="console_application" value="true"/>
+		<capability>
+			<void_safety support="all"/>
+		</capability>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf"/>
+		<cluster name="src" location=".\src\"/>
+		<cluster name="pad" location="..\touch_pad\src\"/>
+	</target>
+	<target name="phone_check">
+		<description>The live configuration, contracts off, except src's preconditions, which the rescue check needs.</description>
+		<root class="TOUCH_BENCH_APP" feature="make"/>
+		<option warning="warning">
+			<assertions precondition="false" postcondition="false" check="false" invariant="false" loop="false" supplier_precondition="false"/>
+		</option>
+		<setting name="console_application" value="true"/>
+		<capability>
+			<void_safety support="all"/>
+		</capability>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf">
+			<option><assertions precondition="false" postcondition="false" check="false" invariant="false" loop="false" supplier_precondition="false"/></option>
+		</library>
+		<library name="simple_eif_phone" location="$SIMPLE_EIFFEL\simple_eif_phone\simple_eif_phone.ecf">
+			<option><assertions precondition="false" postcondition="false" check="false" invariant="false" loop="false" supplier_precondition="false"/></option>
+		</library>
+		<cluster name="src" location=".\src\">
+			<option><assertions precondition="true" postcondition="false" check="false" invariant="false" loop="false" supplier_precondition="false"/></option>
+		</cluster>
+		<cluster name="pad" location="..\touch_pad\src\"/>
+	</target>
+</system>
