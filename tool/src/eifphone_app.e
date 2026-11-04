@@ -110,7 +110,7 @@ feature {NONE} -- Command line
 			l_dir: PATH
 		do
 			create l_cli.make
-			l_cli.set_app_info ("eifphone", "Eiffel project in, signed Android APK out", "0.1.0")
+			l_cli.set_app_info ("eifphone", "Eiffel project in, signed Android APK out", "0.4.0")
 			l_cli.add_flag ("c|clean", "Remove the build folder first")
 			l_cli.add_flag ("crash", "log: show crash lines only")
 			l_cli.add_flag ("lenient", "doctor: a version-pin mismatch is only a warning")

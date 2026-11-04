@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.0] - unreleased
+## [0.4.0] - 2026-11-04
 
 ### Added
 - **Android's own controls from Eiffel** (cluster `src/controls`, `controls = true`): label, button, text box, check box, switch, slider, progress bar, drop-down, radio group, list, scroll, column, row, canvas, image, toast, dialog, pop-up menu, date and time pickers.
@@ -21,7 +21,7 @@
 - Emoji in `simple_widgets` show as boxes: no emoji pictures are packed.
 - Lines in `simple_widgets` break only after a space, hyphen or maqaf.
 
-## [0.3.0] - unreleased
+## [0.3.0] - 2026-11-04
 
 ### Added
 - **Read-aloud:** `phone.speech` reads text aloud, Hebrew included if the engine has it. Needs `java_helper = true`.
@@ -33,7 +33,7 @@
 ### Known limitations
 - Read-aloud needs the language's voice on the phone. On the one real phone tried, Hebrew stayed silent, with a failure reported, until its voice was downloaded in the phone's text-to-speech settings.
 
-## [0.2.0] - unreleased
+## [0.2.0] - 2026-11-04
 
 ### Added
 - **SQLite on the phone:** `simple_sql` runs unchanged, full-text search and Hebrew text included.
