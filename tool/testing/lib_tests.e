@@ -128,6 +128,25 @@ feature -- Project
 			assert ("debug signing", not p.has_release_key)
 		end
 
+	test_project_launch_activity
+			-- Each kind of app starts its own activity.
+		local
+			p: EIFPHONE_PROJECT
+			l_toml: STRING
+		do
+			create p.make
+			p.load (project_folder ("plainapp", Good_toml))
+			assert ("plain", p.launch_activity.same_string ("android.app.NativeActivity"))
+			l_toml := Good_toml.twin
+			l_toml.replace_substring_all ("min_sdk = 26", "min_sdk = 26%Njava_helper = true")
+			p.load (project_folder ("helperapp", l_toml))
+			assert ("helper", p.launch_activity.ends_with ("EifPhoneActivity"))
+			l_toml := Good_toml.twin
+			l_toml.replace_substring_all ("min_sdk = 26", "min_sdk = 26%Ncontrols = true")
+			p.load (project_folder ("controlsproject", l_toml))
+			assert ("controls", p.launch_activity.ends_with ("EifPhoneControlsActivity"))
+		end
+
 	test_project_orientation_kept
 			-- orientation is optional, and kept when given.
 		local

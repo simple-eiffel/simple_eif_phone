@@ -347,11 +347,7 @@ feature {NONE} -- Device
 
 	activity_of (a_b: EIFPHONE_BUILDER): STRING_8
 		do
-			if a_b.project.uses_java_helper then
-				Result := a_b.Helper_activity
-			else
-				Result := "android.app.NativeActivity"
-			end
+			Result := a_b.project.launch_activity
 		end
 
 	install_project (a_dir: PATH; a_launch: BOOLEAN; a_device: detachable READABLE_STRING_8)
@@ -468,7 +464,7 @@ feature {NONE} -- Device
 
 feature {NONE} -- Version
 
-	Version: STRING_8 = "0.5.2"
+	Version: STRING_8 = "0.5.3"
 
 feature {NONE} -- Output
 

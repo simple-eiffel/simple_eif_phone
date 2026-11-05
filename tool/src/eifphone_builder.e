@@ -205,13 +205,7 @@ feature -- Manifest
 		local
 			l_activity: STRING_32
 		do
-			if project.uses_controls then
-				l_activity := Controls_activity.to_string_32
-			elseif project.uses_java_helper then
-				l_activity := Helper_activity.to_string_32
-			else
-				l_activity := {STRING_32} "android.app.NativeActivity"
-			end
+			l_activity := project.launch_activity.to_string_32
 			create Result.make (1024)
 			Result.append ({STRING_32} "<?xml version=%"1.0%" encoding=%"utf-8%"?>%N")
 			Result.append ({STRING_32} "<manifest xmlns:android=%"http://schemas.android.com/apk/res/android%"%N")
@@ -310,10 +304,6 @@ feature -- Names
 		do
 			Result := project.ecf_target
 		end
-
-	Helper_activity: STRING_8 = "io.github.simple_eiffel.eifphone.EifPhoneActivity"
-
-	Controls_activity: STRING_8 = "io.github.simple_eiffel.eifphone.EifPhoneControlsActivity"
 
 	build_folder: PATH
 			-- <project>/build

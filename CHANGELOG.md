@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.3] - 2026-11-05
+
+### Fixed
+- **`eifphone run` could not start an app with `controls = true`.** It installed the app, then asked for the wrong activity. The manifest and `run` now take the name from one place.
+
 ## [0.5.2] - 2026-11-05
 
 ### Fixed

@@ -126,6 +126,20 @@ feature -- Access: [android]
 			-- Does the app use Android's own controls? Brings the Java helper with it.
 	orientation: detachable STRING_32
 			-- "portrait" or "landscape" to hold the screen that way; Void to follow the phone.
+	launch_activity: STRING_8
+			-- The activity Android starts. The manifest names it and `run' starts it,
+			-- so the two cannot disagree.
+		do
+			if uses_controls then
+				Result := "io.github.simple_eiffel.eifphone.EifPhoneControlsActivity"
+			elseif uses_java_helper then
+				Result := "io.github.simple_eiffel.eifphone.EifPhoneActivity"
+			else
+				Result := "android.app.NativeActivity"
+			end
+		ensure
+			named: not Result.is_empty
+		end
 	permissions: ARRAYED_LIST [STRING_8]
 
 feature -- Access: [native]

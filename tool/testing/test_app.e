@@ -54,6 +54,7 @@ feature {NONE} -- Test Runners
 			run_test (agent l_lib_tests.test_report_zero_tests_is_not_pass, "test_report_zero_tests_is_not_pass")
 			run_test (agent l_lib_tests.test_project_java_package_names, "test_project_java_package_names")
 			run_test (agent l_lib_tests.test_project_valid_file, "test_project_valid_file")
+			run_test (agent l_lib_tests.test_project_launch_activity, "test_project_launch_activity")
 			run_test (agent l_lib_tests.test_project_orientation_kept, "test_project_orientation_kept")
 			run_test (agent l_lib_tests.test_project_bad_orientation_named, "test_project_bad_orientation_named")
 			run_test (agent l_lib_tests.test_project_bad_min_sdk_named, "test_project_bad_min_sdk_named")
