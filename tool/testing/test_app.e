@@ -60,6 +60,8 @@ feature {NONE} -- Test Runners
 			run_test (agent l_lib_tests.test_report_only_last_run_counts, "test_report_only_last_run_counts")
 			run_test (agent l_lib_tests.test_toolchain_default_paths, "test_toolchain_default_paths")
 			create l_e2e
+			run_test (agent l_e2e.test_version_is_told, "test_version_is_told")
+			run_test (agent l_e2e.test_help_is_told, "test_help_is_told")
 			run_test (agent l_e2e.test_ac1_doctor_reports_missing_tool, "test_ac1_doctor_reports_missing_tool")
 			run_test (agent l_e2e.test_t10_missing_folder_reported, "test_t10_missing_folder_reported")
 			run_test (agent l_e2e.test_t10_prompting_command_returns, "test_t10_prompting_command_returns")

@@ -1,10 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.1] - 2026-11-04
 
 ### Fixed
+- **`eifphone --help` and `--version` work.** The usage line promised `--help`, and it printed the usage line again.
 - **The keyboard no longer covers a text box low on the screen.** `simple_widgets` slides its drawing up clear of the keyboard, and touches follow. `phone.keyboard.top` gives the keyboard's top edge.
 - **Fonts under other names.** `android_shaping` tries Android's usual file, then a file named for the kind of font, then any file that really draws the script. A phone with no Hebrew font at all still shows boxes.
+- Tested on Android 10 and 15, and on one real phone with Samsung's keyboard. Android 8 and 9 use the Android 10 path, untested.
 
 ## [0.4.0] - 2026-11-04
 

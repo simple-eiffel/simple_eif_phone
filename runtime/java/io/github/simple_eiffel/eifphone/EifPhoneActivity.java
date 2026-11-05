@@ -3,6 +3,7 @@ package io.github.simple_eiffel.eifphone;
 import android.app.NativeActivity;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.OpenableColumns;
@@ -175,19 +176,38 @@ public class EifPhoneActivity extends NativeActivity {
 		});
 		FrameLayout holder = new FrameLayout(this);
 		holder.addView(keyboardBox, new FrameLayout.LayoutParams(1, 1));
-		holder.setOnApplyWindowInsetsListener((view, insets) -> {
-			int bottom = Build.VERSION.SDK_INT >= 30
-				? insets.getInsets(WindowInsets.Type.ime()).bottom
-				: insets.getSystemWindowInsetBottom();
-			view.post(() -> tellKeyboardTop(view, bottom));
-			return insets;
-		});
+		if (Build.VERSION.SDK_INT >= 30) {
+			holder.setOnApplyWindowInsetsListener((view, insets) -> {
+				int bottom = insets.getInsets(WindowInsets.Type.ime()).bottom;
+				view.post(() -> tellKeyboardTop(view, bottom));
+				return insets;
+			});
+		} else {
+			// Before Android 11 no inset names the keyboard: what is left of the window does.
+			holder.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+				Rect left = new Rect();
+				holder.getWindowVisibleDisplayFrame(left);
+				int screen = getWindow().getDecorView().getHeight();
+				int top = screen - left.bottom > screen / 6 ? left.bottom : 0;
+				if (top != keyboardTop) {
+					keyboardTop = top;
+					send(KEYBOARD_TOP, top, "");
+				}
+			});
+		}
 		keyboardWindow = new PopupWindow(holder, ViewGroup.LayoutParams.MATCH_PARENT,
 			ViewGroup.LayoutParams.MATCH_PARENT, true);
 		keyboardWindow.setTouchable(false);   // the app below still takes touches
 		keyboardWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NEEDED);
 		// A request made now would come before the popup has the focus, and be dropped.
 		keyboardWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+		if (Build.VERSION.SDK_INT < 30) {
+			// Only a window that resizes is told about the keyboard. The popup does that, and
+			// the app's own window stays put, or it would move on top of Eiffel's slide.
+			keyboardWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+				| WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+			getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+		}
 		keyboardWindow.setOnDismissListener(() -> {
 			keyboardTop = 0;
 			send(KEYBOARD_CLOSED, 0, "");
