@@ -110,7 +110,7 @@ feature {NONE} -- Command line
 			l_dir: PATH
 		do
 			create l_cli.make
-			l_cli.set_app_info ("eifphone", "Eiffel project in, signed Android APK out", "0.4.0")
+			l_cli.set_app_info ("eifphone", "Eiffel project in, signed Android APK out", Version)
 			l_cli.add_flag ("c|clean", "Remove the build folder first")
 			l_cli.add_flag ("crash", "log: show crash lines only")
 			l_cli.add_flag ("lenient", "doctor: a version-pin mismatch is only a warning")
@@ -128,7 +128,11 @@ feature {NONE} -- Command line
 			else
 				create l_dir.make_from_string (l_rest.first)
 			end
-			if attached l_cli.command as al_c then
+			if l_cli.help_requested then
+				l_cli.print_help
+			elseif l_cli.version_requested then
+				l_cli.print_version
+			elseif attached l_cli.command as al_c then
 				if al_c.same_string ("doctor") then
 					if l_rest.is_empty then run_doctor (Void) else run_doctor (l_dir) end
 				elseif al_c.same_string ("new") then
@@ -461,6 +465,10 @@ feature {NONE} -- Device
 		end
 
 	Test_timeout_seconds: INTEGER = 180
+
+feature {NONE} -- Version
+
+	Version: STRING_8 = "0.4.1"
 
 feature {NONE} -- Output
 

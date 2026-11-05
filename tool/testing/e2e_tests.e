@@ -18,6 +18,22 @@ inherit
 
 feature -- Doctor (AC-1, Task 10)
 
+	test_version_is_told
+			-- `--version' names the tool and its version.
+		do
+			run_tool ({STRING_32} "--version")
+			assert ("exit 0: " + last_exit.out, last_exit = 0)
+			assert ("named: " + last_text, last_text.has_substring ("eifphone v0."))
+		end
+
+	test_help_is_told
+			-- `--help', which the usage line promises, lists the options.
+		do
+			run_tool ({STRING_32} "--help")
+			assert ("exit 0: " + last_exit.out, last_exit = 0)
+			assert ("options listed: " + last_text, last_text.has_substring ("--device"))
+		end
+
 	test_ac1_doctor_reports_missing_tool
 			-- AC-1: a tool path pointed at nothing is named NOT FOUND, exit 1.
 		local
