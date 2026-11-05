@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.2] - 2026-11-05
+
+### Fixed
+- **A project in a deep folder failed at the dex stage** with "The command line is too long". The Java helper's class files now reach `d8` through a file, so the path's length no longer matters.
+
 ## [0.5.1] - 2026-11-05
 
 ### Added

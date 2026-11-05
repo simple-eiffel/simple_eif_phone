@@ -189,6 +189,19 @@ feature -- Build (AC-2, AC-4, FR-008, FR-011)
 			assert ("speech engine visible", l_manifest.has_substring ("android.intent.action.TTS_SERVICE"))
 		end
 
+	test_deep_folder_builds
+			-- A long project path must not pass what Windows allows on a command line
+			-- when the Java helper's class files reach d8.
+		local
+			d: PATH
+		do
+			d := new_project ("deep_folder_with_a_name_long_enough_to_make_every_class_file_path_longer_than_it_was_0123456789")
+			toml_replace (d, "java_helper = false", "controls = true")
+			run_tool ({STRING_32} "build " + text_of (d))
+			assert ("built: " + last_text, last_exit = 0)
+			assert ("dex stage", last_text.has_substring ("ok  dex"))
+		end
+
 	test_controls_app
 			-- controls = true brings the Java helper and names the controls activity.
 		local

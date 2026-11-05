@@ -398,7 +398,7 @@ feature {NONE} -- Stages
 			-- javac + d8: the fixed Java helper -> build/apk/classes.dex.
 		local
 			l_sources, l_class_files: STRING_32
-			l_dir: PATH
+			l_dir, l_list: PATH
 		do
 			l_dir := build_folder.extended ("dex")
 			create l_sources.make (128)
@@ -411,15 +411,20 @@ feature {NONE} -- Stages
 			if last_stage_ok then
 				create l_class_files.make (128)
 				across files_with_extension (l_dir, "class") as ic loop
-					l_class_files.append ({STRING_32} " " + runner.quoted (ic))
+					l_class_files.append (ic.name + {STRING_32} "%N")
 				end
+					-- One file name to a line, in a file: the names alone can pass what
+					-- Windows allows on a command line.
+				l_list := build_folder.extended ("dex_classes.txt")
+				write_text (l_list, l_class_files)
 					-- The javac result stands for the stage; d8 replaces it.
 				results.finish
 				results.remove
 				run_stage (Stage_dex, finder.Tool_d8, build_folder,
 					runner.quoted (tools.d8) + {STRING_32} " --min-api " + project.min_sdk.out.to_string_32
 						+ {STRING_32} " --lib " + runner.quoted (tools.platform_jar_for (project.target_sdk))
-						+ {STRING_32} " --output " + runner.quoted (build_folder.extended ("apk")) + l_class_files)
+						+ {STRING_32} " --output " + runner.quoted (build_folder.extended ("apk"))
+						+ {STRING_32} " %"@" + l_list.name + {STRING_32} "%"")
 			end
 		end
 
