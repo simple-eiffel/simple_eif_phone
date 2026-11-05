@@ -114,6 +114,63 @@ feature -- Element change
 			order (Op_padding, a_sides, a_top_and_bottom, Void)
 		end
 
+	set_least_width (a_width: INTEGER)
+			-- Be at least `a_width' wide, in density-independent pixels.
+		require
+			positive: a_width > 0
+		do
+			order (Op_least_width, a_width, 0, Void)
+		end
+
+	set_least_height (a_height: INTEGER)
+			-- Be at least `a_height' tall, in density-independent pixels, and grow past it with what is inside.
+		require
+			positive: a_height > 0
+		do
+			order (Op_least_height, a_height, 0, Void)
+		end
+
+	set_padding_each (a_start, a_top, a_end, a_bottom: INTEGER)
+			-- Set the space inside the control, side by side, in density-independent pixels.
+		require
+			start_valid: a_start >= 0 and a_start < 65536
+			top_valid: a_top >= 0 and a_top < 65536
+			end_valid: a_end >= 0 and a_end < 65536
+			bottom_valid: a_bottom >= 0 and a_bottom < 65536
+		do
+			order (Op_padding_each, a_start * 65536 + a_end, a_top * 65536 + a_bottom, Void)
+		end
+
+	set_on_tap (a_action: PROCEDURE [TUPLE])
+			-- Make the control tappable, with Android's ripple.
+		do
+			if on_tap = Void then
+				listen ("setOnClickListener", agent tap_heard)
+				order (Op_ripple, 0, 0, Void)
+			end
+			on_tap := a_action
+		ensure
+			set: on_tap = a_action
+		end
+
+	set_surface (a_color: NATURAL_32; a_radius: INTEGER)
+			-- A background of `a_color' (0xAARRGGBB), corners rounded by `a_radius'
+			-- density-independent pixels.
+		require
+			radius_valid: a_radius >= 0
+		do
+			order (Op_surface, a_color.as_integer_32, a_radius, {STRING_32} "")
+		end
+
+	set_bordered_surface (a_color: NATURAL_32; a_radius: INTEGER; a_border: NATURAL_32; a_border_width: INTEGER)
+			-- As `set_surface', with a border.
+		require
+			radius_valid: a_radius >= 0
+			width_positive: a_border_width > 0
+		do
+			order (Op_surface, a_color.as_integer_32, a_radius, a_border.to_hex_string.to_string_32 + {STRING_32} " " + a_border_width.out.to_string_32)
+		end
+
 	discard
 			-- Finished with this control: Android lets go of it. Take it out of its
 			-- parent first. Screens that are shown again need not do this; an app
@@ -221,6 +278,16 @@ feature {PHONE_CONTROLS} -- Events
 		end
 
 feature {NONE} -- Implementation
+
+	on_tap: detachable PROCEDURE [TUPLE]
+			-- What a tap does, if the control takes them.
+
+	tap_heard (a_words: READABLE_STRING_32)
+		do
+			if attached on_tap as al_action then
+				al_action.call ([])
+			end
+		end
 
 	handle_own (a_event: PHONE_EVENT)
 			-- React to an event only this kind of control receives.

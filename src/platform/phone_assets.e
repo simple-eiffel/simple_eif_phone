@@ -50,6 +50,32 @@ feature -- Access
 	last_asset_size: INTEGER
 			-- Byte count of `last_asset' (0 if missing).
 
+	install_stamp: STRING_8
+			-- Changes with every install or update of the app; empty if unknown.
+			-- Keep a copy beside a file taken from the APK, to know when to take it again.
+		do
+			create Result.make_from_c (c_install_stamp)
+		end
+
+	is_copying: BOOLEAN
+			-- Is a copy under way?
+
+	copy_failed: BOOLEAN
+			-- Did the last copy fail?
+
+	copy_fraction: REAL_64
+			-- How far the copy has got, from 0 to 1.
+		local
+			l_total: INTEGER_64
+		do
+			l_total := c_asset_copy_total
+			if l_total > 0 then
+				Result := c_asset_copy_done / l_total
+			end
+		ensure
+			in_range: Result >= 0
+		end
+
 feature -- Basic operations
 
 	read_asset (a_name: READABLE_STRING_8)
@@ -78,7 +104,53 @@ feature -- Basic operations
 			missing_has_none: last_asset = Void implies last_asset_size = 0
 		end
 
+	start_copy (a_name: READABLE_STRING_8; a_target: READABLE_STRING_8)
+			-- Begin copying `a_name' to the file `a_target'. It may be any size: it is
+			-- copied a step at a time, and appears at `a_target' only when whole.
+		require
+			name_ok: is_valid_name (a_name)
+			target_ok: not a_target.is_empty
+			not_copying: not is_copying
+		local
+			l_name, l_target: C_STRING
+		do
+			create l_name.make (a_name)
+			create l_target.make (a_target)
+			is_copying := c_asset_copy_open (l_name.item, l_target.item) = 1
+			copy_failed := not is_copying
+		ensure
+			started_or_failed: is_copying xor copy_failed
+		end
+
+	copy_step
+			-- Copy the next part: a megabyte, a few milliseconds.
+		require
+			copying: is_copying
+		local
+			l_result: INTEGER
+		do
+			l_result := c_asset_copy_step
+			if l_result <= 0 then
+				is_copying := False
+				copy_failed := l_result < 0
+			end
+		ensure
+			failure_ends_it: copy_failed implies not is_copying
+		end
+
+	cancel_copy
+			-- Stop the copy and leave nothing behind.
+		require
+			copying: is_copying
+		do
+			c_asset_copy_cancel
+			is_copying := False
+		ensure
+			stopped: not is_copying
+		end
+
 invariant
 	size_non_negative: last_asset_size >= 0
+	one_state: not (is_copying and copy_failed)
 
 end

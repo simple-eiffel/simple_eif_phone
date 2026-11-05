@@ -39,6 +39,9 @@ feature {NONE} -- Initialization
 			t.run ("sql_hebrew_text", agent sql_hebrew_text)
 			t.run ("asset_read", agent asset_read)
 			t.run ("asset_missing", agent asset_missing)
+			t.run ("asset_in_folder", agent asset_in_folder)
+			t.run ("asset_copied", agent asset_copied)
+			t.run ("install_stamp_known", agent install_stamp_known)
 			t.run ("back_policy_round_trip", agent back_policy_round_trip)
 			t.run ("keep_screen_on", agent keep_screen_on_flag)
 			t.run ("poll_timeout", agent poll_timeout)
@@ -72,7 +75,7 @@ feature {NONE} -- Access
 	seen: ARRAYED_LIST [INTEGER]
 			-- Kinds delivered so far by `wait_for'.
 
-	Total: INTEGER = 27
+	Total: INTEGER = 30
 
 feature {NONE} -- Self-contained tests
 
@@ -297,6 +300,37 @@ feature {NONE} -- Self-contained tests
 				Result := a.last_asset_size = 12 and then al_d.read_natural_8 (0) = ('e').code.to_natural_8
 					and then al_d.read_natural_8 (11) = ('e').code.to_natural_8
 			end
+		end
+
+	asset_in_folder: BOOLEAN
+			-- assets/sub/nested.txt is found by its forward-slash name.
+		do
+			Result := phone.assets.has_asset ("sub/nested.txt")
+		end
+
+	asset_copied: BOOLEAN
+			-- A copy lands whole, with its progress reaching the end, and leaves no part file.
+		local
+			l_target: STRING_8
+			l_file: RAW_FILE
+			l_last: CELL [REAL_64]
+		do
+			l_target := phone.storage.internal_path + "/copied.txt"
+			create l_last.put (0.0)
+			phone.copy_asset ("test.txt", l_target, agent (a_cell: CELL [REAL_64]; a_at: REAL_64) do a_cell.put (a_at) end (l_last, ?))
+			create l_file.make_with_name (l_target)
+			Result := not phone.assets.copy_failed and l_file.exists and then l_file.count = 12
+				and l_last.item = 1.0 and not (create {RAW_FILE}.make_with_name (l_target + ".part")).exists
+			if l_file.exists then
+				l_file.delete
+			end
+		end
+
+	install_stamp_known: BOOLEAN
+			-- The stamp is there, and the same when read twice.
+		do
+			Result := not phone.assets.install_stamp.is_empty
+				and phone.assets.install_stamp.same_string (phone.assets.install_stamp)
 		end
 
 	asset_missing: BOOLEAN

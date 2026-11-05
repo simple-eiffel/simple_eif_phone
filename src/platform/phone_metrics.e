@@ -39,6 +39,12 @@ feature -- Access
 	content_rect: PHONE_RECT
 			-- Area where content is seen by the user.
 
+	is_night: BOOLEAN
+			-- Is the phone set to its dark theme?
+		do
+			Result := c_is_night
+		end
+
 	layout_is_rtl: BOOLEAN
 			-- Is the phone's layout direction right-to-left?
 

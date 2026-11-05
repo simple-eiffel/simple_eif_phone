@@ -468,7 +468,7 @@ feature {NONE} -- Device
 
 feature {NONE} -- Version
 
-	Version: STRING_8 = "0.4.1"
+	Version: STRING_8 = "0.5.0"
 
 feature {NONE} -- Output
 

@@ -134,6 +134,39 @@ feature -- Events
 			non_negative: Result >= 0
 		end
 
+	copy_asset (a_name, a_target: READABLE_STRING_8; a_progress: detachable PROCEDURE [TUPLE [REAL_64]])
+			-- Copy `a_name' from the APK to the file `a_target', telling `a_progress' how far
+			-- it has got, from 0 to 1. Android and the controls are answered between steps,
+			-- so the app stays alive however large the file is. See `assets.copy_failed'.
+		require
+			not_destroyed: not lifecycle.is_destroyed
+			no_open_frame: not screen.in_frame
+			not_copying: not assets.is_copying
+		do
+			assets.start_copy (a_name, a_target)
+			from until not assets.is_copying or lifecycle.is_destroyed loop
+				assets.copy_step
+				if attached a_progress as al_progress then
+					al_progress.call ([assets.copy_fraction])
+				end
+				from
+					poll_event (0)
+				until
+					last_event.is_none or lifecycle.is_destroyed
+				loop
+					controls.dispatch (last_event)
+					if not lifecycle.is_destroyed then
+						poll_event (0)
+					end
+				end
+			end
+			if assets.is_copying then
+				assets.cancel_copy
+			end
+		ensure
+			finished: not assets.is_copying
+		end
+
 	run_controls
 			-- Deliver events to `controls' until Android ends the app. Apps with a
 			-- loop of their own call `wait_for_event' and `controls.dispatch' instead.
