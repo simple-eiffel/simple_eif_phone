@@ -235,10 +235,14 @@ feature -- Manifest
 			if project.icon_path /= Void then
 				Result.append ({STRING_32} "        android:icon=%"@mipmap/ic_launcher%"%N")
 			end
+				-- A phone's cloud backup never gets an app's private data; right-to-left layouts work.
+			Result.append ({STRING_32} "        android:allowBackup=%"false%"%N")
+			Result.append ({STRING_32} "        android:supportsRtl=%"true%"%N")
 			Result.append ({STRING_32} "        android:extractNativeLibs=%"true%">%N")
 			Result.append ({STRING_32} "        <activity%N")
 			Result.append ({STRING_32} "            android:name=%"" + l_activity + {STRING_32} "%"%N")
 			Result.append ({STRING_32} "            android:exported=%"true%"%N")
+			Result.append ({STRING_32} "            android:windowSoftInputMode=%"adjustResize%"%N")
 			Result.append ({STRING_32} "            android:configChanges=%"" + Manifest_config_changes.to_string_32 + {STRING_32} "%"%N")
 			Result.append ({STRING_32} "            android:theme=%"@android:style/Theme.Black.NoTitleBar%">%N")
 			Result.append ({STRING_32} "            <meta-data android:name=%"android.app.lib_name%" android:value=%"" + library_name.to_string_32 + {STRING_32} "%"/>%N")
@@ -430,10 +434,6 @@ feature {NONE} -- Stages
 				+ {STRING_32} " -I " + runner.quoted (tools.platform_jar_for (project.target_sdk))
 				+ {STRING_32} " --min-sdk-version " + project.min_sdk.out.to_string_32
 				+ {STRING_32} " --target-sdk-version " + project.target_sdk.out.to_string_32
-			l_assets := project.directory.absolute_path.extended ("assets")
-			if (create {DIRECTORY}.make_with_path (l_assets)).exists then
-				l_cmd.append ({STRING_32} " -A " + runner.quoted (l_assets))
-			end
 			if project.icon_path /= Void then
 				compile_icon
 				if last_stage_ok then
@@ -458,6 +458,45 @@ feature {NONE} -- Stages
 				results.remove
 				run_stage (Stage_package, finder.Tool_aapt, build_folder.extended ("apk"),
 					runner.quoted (tools.aapt) + {STRING_32} " add " + runner.quoted (unsigned_apk) + l_adds)
+			end
+			if last_stage_ok then
+				l_assets := project.directory.absolute_path
+				create l_adds.make (128)
+				across asset_names (l_assets.extended ("assets"), "assets") as ic loop
+					l_adds.append ({STRING_32} " %"" + ic + {STRING_32} "%"")
+				end
+				if not l_adds.is_empty then
+					results.finish
+					results.remove
+					run_stage (Stage_package, finder.Tool_aapt, l_assets,
+						runner.quoted (tools.aapt) + {STRING_32} " add " + runner.quoted (unsigned_apk) + l_adds)
+				end
+			end
+		end
+
+	asset_names (a_folder: PATH; a_prefix: READABLE_STRING_32): ARRAYED_LIST [STRING_32]
+			-- The files under `a_folder', named from `a_prefix' with forward slashes.
+			-- aapt2 link -A would name a file in a subfolder with a backslash on
+			-- Windows, and Android would never find it, so aapt add takes them all.
+		local
+			d: DIRECTORY
+			p: PATH
+			l_name: STRING_32
+		do
+			create Result.make (8)
+			create d.make_with_path (a_folder)
+			if d.exists then
+				across d.entries as ic loop
+					if not (ic.name.same_string ({STRING_32} ".") or ic.name.same_string ({STRING_32} "..")) then
+						p := a_folder.extended_path (ic)
+						l_name := a_prefix + {STRING_32} "/" + ic.name
+						if (create {DIRECTORY}.make_with_path (p)).exists then
+							Result.append (asset_names (p, l_name))
+						else
+							Result.extend (l_name)
+						end
+					end
+				end
 			end
 		end
 

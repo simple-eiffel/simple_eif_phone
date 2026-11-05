@@ -128,6 +128,28 @@ feature -- Commands
 			port.send (Op_menu, a_anchor.id, l_id, 0, l_text)
 		end
 
+	show_dropdown (a_anchor: PHONE_CONTROL; a_rows: ARRAY [PHONE_RICH_ROW]; a_background: NATURAL_32; a_answer: PROCEDURE [TUPLE [INTEGER]])
+			-- A drop-down of styled rows under `a_anchor'. `a_answer' gets the chosen row's
+			-- number from 1, or 0 when the user backs out.
+		require
+			mine: a_anchor.controls = Current
+			rows_given: not a_rows.is_empty
+		local
+			l_text: STRING_32
+			l_id: INTEGER
+		do
+			l_id := new_id
+			answers.force (agent answer_index (a_answer, ?), l_id)
+			create l_text.make (256)
+			across a_rows as ic loop
+				if not l_text.is_empty then
+					l_text.append_character (Row_mark)
+				end
+				l_text.append (ic.wire)
+			end
+			port.send (Op_dropdown, a_anchor.id, l_id, a_background.as_integer_32, l_text)
+		end
+
 	pick_date (a_year, a_month, a_day: INTEGER; a_answer: PROCEDURE [TUPLE [READABLE_STRING_32]])
 			-- Android's date picker, opened at the date given. `a_answer' gets
 			-- "year-month-day", or empty text when the user backs out.
@@ -154,6 +176,19 @@ feature -- Commands
 			l_id := new_id
 			answers.force (agent answer_text (a_answer, ?), l_id)
 			port.send (Op_time, l_id, a_hour, a_minute, Void)
+		end
+
+	set_window_colors (a_top, a_bottom: NATURAL_32; a_dark_icons: BOOLEAN)
+			-- Let the app reach the screen's edges: `a_top' behind everything, `a_bottom'
+			-- behind the navigation bar, with dark or light icons in the phone's bars.
+		do
+			port.send (Op_window, 0, a_top.as_integer_32, a_bottom.as_integer_32, if a_dark_icons then {STRING_32} "1" else {STRING_32} "0" end)
+		end
+
+	set_bars_hidden (a_hidden: BOOLEAN)
+			-- Hide the phone's own bars, or bring them back. A swipe from the edge shows them for a moment.
+		do
+			port.send (Op_bars, 0, a_hidden.to_integer, 0, Void)
 		end
 
 	set_on_back (a_action: PROCEDURE [TUPLE])
@@ -252,6 +287,8 @@ feature {NONE} -- Implementation
 	members: HASH_TABLE [PHONE_CONTROL, INTEGER]
 
 	waiting_canvases: ARRAYED_LIST [PHONE_CANVAS]
+
+	Row_mark: CHARACTER_32 = '%/28/'
 
 	answers: HASH_TABLE [PROCEDURE [TUPLE [PHONE_EVENT]], INTEGER]
 			-- Questions in flight, by the id they were asked under.

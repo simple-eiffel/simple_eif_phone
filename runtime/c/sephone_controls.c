@@ -187,7 +187,7 @@ static const char *class_of_kind(int kind)
 	case SEPHONE_CONTROL_TEXT_BOX: return "android/widget/EditText";
 	case SEPHONE_CONTROL_COLUMN:
 	case SEPHONE_CONTROL_ROW: return "android/widget/LinearLayout";
-	case SEPHONE_CONTROL_LIST: return "android/widget/ListView";
+	case SEPHONE_CONTROL_LIST: return "io/github/simple_eiffel/eifphone/EifPhoneRows";
 	case SEPHONE_CONTROL_CANVAS: return "android/view/SurfaceView";
 	case SEPHONE_CONTROL_SCROLL: return "android/widget/ScrollView";
 	case SEPHONE_CONTROL_CHECK_BOX: return "android/widget/CheckBox";
@@ -434,6 +434,13 @@ static void carry_out(JNIEnv *env, sephone_order *o)
 	case SEPHONE_OP_NEW: make_view(env, o->id, o->a, o->text); return;
 	case SEPHONE_OP_TOAST: show_toast(env, text); return;
 	case SEPHONE_OP_DIALOG: show_dialog(env, o->id, o->text); return;
+	case SEPHONE_OP_WINDOW:
+		/* a = color above, b = color below, text = "1" for dark icons */
+		call_void(env, sephone_activity(), "sephoneWindow", "(IILjava/lang/String;)V", (jint)o->a, (jint)o->b, java_text(env, o->text));
+		return;
+	case SEPHONE_OP_BARS:
+		call_void(env, sephone_activity(), "sephoneBars", "(Z)V", (jboolean)(o->a != 0));
+		return;
 	case SEPHONE_OP_DATE: {
 		/* a = year, b = month * 100 + day */
 		call_void(env, sephone_activity(), "sephoneDate", "(IIII)V", (jint)o->id, (jint)o->a, (jint)(o->b / 100), (jint)(o->b % 100));
@@ -490,6 +497,32 @@ static void carry_out(JNIEnv *env, sephone_order *o)
 		break;
 	case SEPHONE_OP_PADDING:
 		call_void(env, v->view, "setPadding", "(IIII)V", (jint)px(o->a), (jint)px(o->b), (jint)px(o->a), (jint)px(o->b));
+		break;
+	case SEPHONE_OP_LEAST_HEIGHT:
+		call_void(env, v->view, "setMinimumHeight", "(I)V", (jint)px(o->a));
+		break;
+	case SEPHONE_OP_LEAST_WIDTH:
+		call_void(env, v->view, "setMinimumWidth", "(I)V", (jint)px(o->a));
+		break;
+	case SEPHONE_OP_PADDING_EACH:
+		/* a = start and end, b = top and bottom, sixteen bits each */
+		call_void(env, v->view, "setPadding", "(IIII)V", (jint)px(o->a >> 16), (jint)px(o->b >> 16), (jint)px(o->a & 0xFFFF), (jint)px(o->b & 0xFFFF));
+		break;
+	case SEPHONE_OP_SURFACE:
+		/* a = color, b = corner radius, text = border color and width */
+		call_void(env, sephone_activity(), "sephoneSurface", "(Landroid/view/View;IILjava/lang/String;)V",
+			v->view, (jint)o->a, (jint)o->b, java_text(env, text));
+		break;
+	case SEPHONE_OP_RIPPLE:
+		call_void(env, sephone_activity(), "sephoneRipple", "(Landroid/view/View;Z)V", v->view, (jboolean)(o->a != 0));
+		break;
+	case SEPHONE_OP_DROPDOWN:
+		/* id = the anchor; a = the id the answer comes under; b = the background */
+		call_void(env, sephone_activity(), "sephoneDropdown", "(Landroid/view/View;IILjava/lang/String;)V",
+			v->view, (jint)o->a, (jint)o->b, java_text(env, text));
+		break;
+	case SEPHONE_OP_RICH:
+		call_void(env, sephone_activity(), "sephoneRich", "(Landroid/view/View;Ljava/lang/String;)V", v->view, java_text(env, text));
 		break;
 	case SEPHONE_OP_CHECKED:
 		set_quiet(env, v, 1);

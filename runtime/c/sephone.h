@@ -172,6 +172,15 @@
 #define SEPHONE_OP_IMAGE 34
 #define SEPHONE_OP_MENU 35
 #define SEPHONE_OP_PADDING 36
+#define SEPHONE_OP_SURFACE 37
+#define SEPHONE_OP_WINDOW 38
+#define SEPHONE_OP_BARS 39
+#define SEPHONE_OP_RICH 40
+#define SEPHONE_OP_RIPPLE 41
+#define SEPHONE_OP_DROPDOWN 42
+#define SEPHONE_OP_PADDING_EACH 43
+#define SEPHONE_OP_LEAST_WIDTH 44
+#define SEPHONE_OP_LEAST_HEIGHT 45
 
 /* Back-key policy. */
 #define SEPHONE_BACK_SYSTEM 0  /* Android also handles Back (finishes the app) */
@@ -248,6 +257,16 @@ const char *sephone_path_external(void); /* may be NULL */
 /* Assets. */
 int  sephone_asset_size(const char *name);                /* -1 if missing */
 int  sephone_asset_read(const char *name, void *buf, int n); /* bytes read, -1 if missing */
+/* One copy at a time, a step at a time, so a file of any size never sits in memory
+   and the app can answer Android between steps. The file appears at `target' only
+   when whole. */
+int  sephone_asset_copy_open(const char *name, const char *target); /* 1 if started */
+int  sephone_asset_copy_step(void);   /* 1 more to do, 0 finished, -1 failed */
+void sephone_asset_copy_cancel(void);
+long long sephone_asset_copy_total(void);
+long long sephone_asset_copy_done(void);
+int  sephone_is_night(void);          /* the phone's dark theme setting */
+const char *sephone_install_stamp(void); /* changes with every install; "" if unknown */
 
 /* Log. */
 void sephone_log(int level, const char *tag, const char *text); /* level: 3 debug, 4 info, 5 warn, 6 error */

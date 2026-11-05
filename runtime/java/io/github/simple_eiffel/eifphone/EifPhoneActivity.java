@@ -255,9 +255,21 @@ public class EifPhoneActivity extends NativeActivity {
 		});
 	}
 
+	/** Told of results the activity itself did not ask for. */
+	public interface ResultListener {
+		void onResult(int request, int result, Intent data);
+	}
+
+	private ResultListener resultListener;
+
+	public void setResultListener(ResultListener l) {
+		resultListener = l;
+	}
+
 	@Override
 	protected void onActivityResult(int request, int result, Intent data) {
 		super.onActivityResult(request, result, data);
+		if (resultListener != null) resultListener.onResult(request, result, data);
 		if (request == PICK_REQUEST) {
 			if (result == RESULT_OK && data != null && data.getData() != null) {
 				final Uri uri = data.getData();

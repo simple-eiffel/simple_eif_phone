@@ -73,6 +73,19 @@ feature -- Element change
 			counted: children.count = old children.count + 1
 		end
 
+	clear
+			-- Remove and discard every child.
+		do
+			from until children.is_empty loop
+				if attached children.last as al_child then
+					remove (al_child)
+					al_child.discard
+				end
+			end
+		ensure
+			empty: children.is_empty
+		end
+
 	remove (a_child: PHONE_CONTROL)
 		require
 			held: children.has (a_child)

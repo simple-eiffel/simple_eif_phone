@@ -43,6 +43,20 @@ feature -- Element change
 			set: text.same_string (a_text)
 		end
 
+	set_color (a_color: NATURAL_32)
+			-- Text in `a_color' (0xAARRGGBB).
+		do
+			call_integer ("setTextColor", a_color.as_integer_32)
+		end
+
+	set_rich (a_row: PHONE_RICH_ROW)
+			-- Show the first block of `a_row', with its styles.
+		require
+			has_block: a_row.block_count > 0
+		do
+			order (Op_rich, 0, 0, a_row.wire)
+		end
+
 	set_style (a_size: INTEGER; a_bold: BOOLEAN)
 		require
 			size_positive: a_size > 0

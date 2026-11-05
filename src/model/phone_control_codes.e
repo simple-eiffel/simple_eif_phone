@@ -65,6 +65,16 @@ feature -- Orders
 	Op_image: INTEGER = 34
 	Op_menu: INTEGER = 35
 	Op_padding: INTEGER = 36
+	Op_surface: INTEGER = 37
+	Op_window: INTEGER = 38
+	Op_bars: INTEGER = 39
+	Op_rich: INTEGER = 40
+	Op_ripple: INTEGER = 41
+	Op_dropdown: INTEGER = 42
+	Op_padding_each: INTEGER = 43
+	Op_least_width: INTEGER = 44
+
+	Op_least_height: INTEGER = 45
 
 feature -- Arguments of the general route
 

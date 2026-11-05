@@ -151,6 +151,27 @@ feature {NONE} -- Storage and assets
 	c_asset_read (a_name, a_buffer: POINTER; a_count: INTEGER): INTEGER
 		external "C inline use %"sephone.h%"" alias "return (EIF_INTEGER) sephone_asset_read((const char *)$a_name, (void *)$a_buffer, (int)$a_count);" end
 
+	c_asset_copy_open (a_name, a_target: POINTER): INTEGER
+		external "C inline use %"sephone.h%"" alias "return (EIF_INTEGER) sephone_asset_copy_open((const char *)$a_name, (const char *)$a_target);" end
+
+	c_asset_copy_step: INTEGER
+		external "C inline use %"sephone.h%"" alias "return (EIF_INTEGER) sephone_asset_copy_step();" end
+
+	c_asset_copy_cancel
+		external "C inline use %"sephone.h%"" alias "sephone_asset_copy_cancel();" end
+
+	c_asset_copy_total: INTEGER_64
+		external "C inline use %"sephone.h%"" alias "return (EIF_INTEGER_64) sephone_asset_copy_total();" end
+
+	c_asset_copy_done: INTEGER_64
+		external "C inline use %"sephone.h%"" alias "return (EIF_INTEGER_64) sephone_asset_copy_done();" end
+
+	c_is_night: BOOLEAN
+		external "C inline use %"sephone.h%"" alias "return (EIF_BOOLEAN) sephone_is_night();" end
+
+	c_install_stamp: POINTER
+		external "C inline use %"sephone.h%"" alias "return (EIF_POINTER) sephone_install_stamp();" end
+
 feature {NONE} -- Log
 
 	c_log (a_level: INTEGER; a_tag, a_text: POINTER)

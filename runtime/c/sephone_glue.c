@@ -14,6 +14,7 @@
 #include <android/log.h>
 #include <android/native_window.h>
 #include <android/window.h>
+#include <fcntl.h>
 #include <jni.h>
 #include <math.h>
 #include <pthread.h>
@@ -662,6 +663,109 @@ int sephone_asset_read(const char *name, void *buf, int n)
 	while (total < n && (got = AAsset_read(a, (char *)buf + total, (size_t)(n - total))) > 0) total += got;
 	AAsset_close(a);
 	return total;
+}
+
+#define COPY_STEP (1 << 20)
+
+static AAsset *s_copy_in = NULL;
+static int s_copy_out = -1;
+static long long s_copy_total = 0;
+static long long s_copy_done = 0;
+static char s_copy_target[1024];
+static char s_copy_part[1040];
+
+void sephone_asset_copy_cancel(void)
+{
+	if (s_copy_in) AAsset_close(s_copy_in);
+	if (s_copy_out >= 0) {
+		close(s_copy_out);
+		unlink(s_copy_part);
+	}
+	s_copy_in = NULL;
+	s_copy_out = -1;
+}
+
+int sephone_asset_copy_open(const char *name, const char *target)
+{
+	sephone_asset_copy_cancel();
+	if (strlen(target) >= sizeof(s_copy_target)) return 0;
+	strcpy(s_copy_target, target);
+	snprintf(s_copy_part, sizeof(s_copy_part), "%s.part", target);
+	s_copy_in = AAssetManager_open(s_app->activity->assetManager, name, AASSET_MODE_STREAMING);
+	if (!s_copy_in) return 0;
+	s_copy_out = open(s_copy_part, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+	if (s_copy_out < 0) {
+		AAsset_close(s_copy_in);
+		s_copy_in = NULL;
+		return 0;
+	}
+	s_copy_total = (long long)AAsset_getLength64(s_copy_in);
+	s_copy_done = 0;
+	return 1;
+}
+
+int sephone_asset_copy_step(void)
+{
+	static char buffer[COPY_STEP];
+	int got, put = 0;
+	if (!s_copy_in) return -1;
+	got = AAsset_read(s_copy_in, buffer, COPY_STEP);
+	if (got < 0) {
+		sephone_asset_copy_cancel();
+		return -1;
+	}
+	if (got == 0) {
+		AAsset_close(s_copy_in);
+		s_copy_in = NULL;
+		close(s_copy_out);
+		s_copy_out = -1;
+		if (rename(s_copy_part, s_copy_target) != 0) {
+			unlink(s_copy_part);
+			return -1;
+		}
+		return 0;
+	}
+	while (put < got) {
+		ssize_t wrote = write(s_copy_out, buffer + put, (size_t)(got - put));
+		if (wrote <= 0) {
+			sephone_asset_copy_cancel();
+			return -1;
+		}
+		put += (int)wrote;
+	}
+	s_copy_done += got;
+	return 1;
+}
+
+int sephone_is_night(void)
+{
+	return AConfiguration_getUiModeNight(s_app->config) == ACONFIGURATION_UI_MODE_NIGHT_YES;
+}
+
+long long sephone_asset_copy_total(void) { return s_copy_total; }
+long long sephone_asset_copy_done(void) { return s_copy_done; }
+
+/* The APK's time and size: every install or update changes them. */
+const char *sephone_install_stamp(void)
+{
+	static char stamp[64];
+	JNIEnv *env = s_env;
+	jobject path;
+	stamp[0] = 0;
+	if (!env) return stamp;
+	path = sephone_call_object(s_app->activity->clazz, "getPackageCodePath", "()Ljava/lang/String;");
+	if (path) {
+		const char *text = (*env)->GetStringUTFChars(env, (jstring)path, NULL);
+		struct stat info;
+		if (text) {
+			if (stat(text, &info) == 0) {
+				snprintf(stamp, sizeof(stamp), "%lld:%lld", (long long)info.st_mtime, (long long)info.st_size);
+			}
+			(*env)->ReleaseStringUTFChars(env, (jstring)path, text);
+		}
+		(*env)->DeleteLocalRef(env, path);
+	}
+	return stamp;
 }
 
 /* ------------------------------------------------------------------ log */

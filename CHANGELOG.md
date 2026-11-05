@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.5.0] - 2026-11-05
+
+### Added
+- **16 new control classes.** `PHONE_FIELD`, a Material text field with a floating label. `PHONE_DIALOG`. `PHONE_SHEET`, a bottom sheet. `PHONE_PAGER`, swiping between pages. `PHONE_STACK`, `PHONE_FLOW`, `PHONE_FIT_ROW` and `PHONE_SIDEWAYS_SCROLL` for layout. `PHONE_ICON`, `PHONE_ON_OFF`, `PHONE_RANGE`, `PHONE_TAPPABLE_TEXT`, `PHONE_ATLAS`, `PHONE_RICH_ROW`.
+- **`PHONE_SERVICES`:** timers, the clipboard, sharing, opening and saving files through the phone's picker, keeping the screen on, hiding the keyboard, opening the speech settings, and the phone's own date form.
+- **`PHONE_VOICES`:** read-aloud across every voice engine on the phone, by language, with audio focus, so a call pauses the reading.
+- **`PHONE_RICH_ROW`:** styled text with Compose's line rules. `add_block` for reading text, `add_material_block` for Material's text styles, and runs in semi-bold, underlined or tappable.
+- **`PHONE_LIST`:** `set_on_press` for a long press, with the block and character pressed, and `show_row`.
+- **`PHONE_CONTROL`:** `set_padding_each`, `set_least_width`, `set_least_height`.
+- **`PHONE_ASSETS`:** a large file copied out of the APK in steps, with progress, so the screen stays alive.
+- **Dropdown menus** sized and placed by Material's rules.
+
+### Changed
+- **Every app the tool builds now has three new manifest settings.** Rebuilding an existing app changes it:
+  - `allowBackup="false"`: Android no longer backs up the app's data. An app that relied on that backup must set this back.
+  - `supportsRtl="true"`: layouts follow right-to-left languages.
+  - `adjustResize`: the window shrinks when the keyboard opens, instead of the keyboard covering it.
+
+### Fixed
+- **Text at a large font size.** Android 14 and later scale big text less than small text, and line heights were scaled on their own, which set big text 15 to 20% too close. Lines now keep their ratio to the text.
+
+### Tested
+- 103 tool tests, 60 logic tests, 30 on-device tests twice, 48 scripted control steps and 30 scripted widget steps pass. Nine example apps build.
+- The new classes have no example of their own in this repository yet. They were tried in one large application, on the emulator and on one real phone at a large font size.
+
+### Known limitations
+- A menu too tall for the space below its button stays under the button, where Material's rises to the top margin. All of it can still be reached by scrolling.
+- `PHONE_VOICES` skips a language the phone has no voice for, and says so. Latin has not been heard.
+
 ## [0.4.1] - 2026-11-04
 
 ### Fixed

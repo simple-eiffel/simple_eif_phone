@@ -70,6 +70,22 @@ feature -- Element change
 			set: on_select = a_action
 		end
 
+	set_on_press (a_action: PROCEDURE [TUPLE [row: INTEGER; block: INTEGER; offset: INTEGER]])
+			-- Tell `a_action' of a long press: which row and which block of a rich row, both
+			-- from 1, and the offset of the character under the finger, from 0.
+		do
+			on_press := a_action
+			listen ("setOnRowPressListener", agent press_heard)
+		end
+
+	show_row (a_row: INTEGER)
+			-- Bring row `a_row' into view if it is not, moving there smoothly.
+		require
+			in_range: a_row >= 1 and a_row <= row_count
+		do
+			call_integer ("smoothScrollToPosition", a_row - 1)
+		end
+
 	scroll_to_row (a_row: INTEGER)
 		require
 			in_range: a_row >= 1 and a_row <= row_count
@@ -78,6 +94,19 @@ feature -- Element change
 		end
 
 feature {NONE} -- Implementation
+
+	on_press: detachable PROCEDURE [TUPLE [row: INTEGER; block: INTEGER; offset: INTEGER]]
+
+	press_heard (a_words: READABLE_STRING_32)
+			-- "onRowPress|row|block|offset", the row and the block from 0.
+		local
+			l_parts: LIST [READABLE_STRING_32]
+		do
+			l_parts := a_words.split ('|')
+			if l_parts.count = 4 and then attached on_press as al_action then
+				al_action.call ([l_parts [2].to_integer + 1, l_parts [3].to_integer + 1, l_parts [4].to_integer])
+			end
+		end
 
 	handle_own (a_event: PHONE_EVENT)
 		do

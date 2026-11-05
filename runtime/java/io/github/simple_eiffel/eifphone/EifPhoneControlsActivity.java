@@ -3,20 +3,41 @@ package io.github.simple_eiffel.eifphone;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
 import android.graphics.Insets;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.LineHeightSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
+import android.text.style.SuperscriptSpan;
+import android.text.TextPaint;
+import android.text.style.ClickableSpan;
+import android.text.style.TypefaceSpan;
+import android.text.style.UnderlineSpan;
+import android.view.Gravity;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 import android.widget.AdapterView;
@@ -24,6 +45,9 @@ import android.widget.BaseAdapter;
 import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ListPopupWindow;
+import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
@@ -34,6 +58,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 
 /**
  * The window for apps that use Android's own controls (eifphone.toml: controls = true).
@@ -139,6 +164,190 @@ public class EifPhoneControlsActivity extends EifPhoneActivity {
 		} else {
 			super.onBackPressed();
 		}
+	}
+
+	/** Draws to the screen's edges: `top' behind the status bar, `bottom' behind the navigation bar. */
+	public void sephoneWindow(int top, int bottom, String darkIcons) {
+		Window w = getWindow();
+		boolean dark = "1".equals(darkIcons);
+		w.setStatusBarColor(0);
+		w.setNavigationBarColor(0);
+		if (Build.VERSION.SDK_INT >= 29) {
+			w.setStatusBarContrastEnforced(false);
+			w.setNavigationBarContrastEnforced(false);
+		}
+		if (Build.VERSION.SDK_INT >= 30) {
+			w.setDecorFitsSystemWindows(false);
+			int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+			w.getInsetsController().setSystemBarsAppearance(dark ? light : 0, light);
+		} else {
+			int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+			if (dark) flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+			root.setSystemUiVisibility(flags);
+		}
+		root.setBackground(new Edges(top, bottom));
+		root.requestApplyInsets();
+	}
+
+	/** Hides the phone's own bars; a swipe from the edge shows them for a moment. */
+	public void sephoneBars(boolean hidden) {
+		Window w = getWindow();
+		if (Build.VERSION.SDK_INT >= 30) {
+			WindowInsetsController bars = w.getInsetsController();
+			bars.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+			if (hidden) bars.hide(WindowInsets.Type.systemBars());
+			else bars.show(WindowInsets.Type.systemBars());
+		} else {
+			int keep = root.getSystemUiVisibility() & ~(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+			root.setSystemUiVisibility(hidden
+				? keep | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+				: keep);
+		}
+	}
+
+	/** A colored, rounded background, with a border if `border' reads "color width". */
+	public void sephoneSurface(View view, int color, int radius, String border) {
+		float density = getResources().getDisplayMetrics().density;
+		GradientDrawable shape = new GradientDrawable();
+		shape.setColor(color);
+		shape.setCornerRadius(radius * density);
+		if (!border.isEmpty()) {
+			String[] parts = border.split(" ");
+			shape.setStroke(Math.round(Integer.parseInt(parts[1]) * density), (int) Long.parseLong(parts[0], 16));
+		}
+		view.setBackground(shape);
+	}
+
+	/** Android's touch ripple over a view, kept apart from its background. */
+	public void sephoneRipple(View view, boolean borderless) {
+		TypedValue value = new TypedValue();
+		getTheme().resolveAttribute(borderless ? android.R.attr.selectableItemBackgroundBorderless : android.R.attr.selectableItemBackground, value, true);
+		view.setForeground(getDrawable(value.resourceId));
+	}
+
+	/** A drop-down of styled rows, in the form PHONE_RICH_ROW writes. Answers from 1; 0 if dismissed. */
+	/** A menu row: at least Material's 48 tall, what it holds centered in that, growing with big text. */
+	private View menuRow(Rows maker, String item, View old, ViewGroup parent, int position) {
+		LinearLayout row = (LinearLayout) maker.richRow(item, old, parent, position);
+		row.setMinimumHeight(Math.round(48 * getResources().getDisplayMetrics().density));
+		row.setGravity(Gravity.CENTER_VERTICAL);
+		return row;
+	}
+
+	public void sephoneDropdown(View anchor, int id, int background, String rows) {
+		final String[] items = rows.split("\u001C");
+		final Rows maker = new Rows(0);
+		maker.gapSet = true;
+		final ListPopupWindow popup = new ListPopupWindow(this);
+		float density = getResources().getDisplayMetrics().density;
+		GradientDrawable shape = new GradientDrawable();
+		shape.setColor(background);
+		shape.setCornerRadius(4 * density);
+		popup.setBackgroundDrawable(shape);
+		popup.setAnchorView(anchor);
+		popup.setModal(true);
+		// As wide as its widest row, within Material's limits; above the anchor if it fits only there.
+		int wide = 0;
+		int tall = Math.round(16 * density);
+		FrameLayout room = new FrameLayout(this);
+		int free = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+		int most = Math.round(280 * density);
+		for (int i = 0; i < items.length; i++) {
+			View row = menuRow(maker, items[i], null, room, i);
+			row.measure(View.MeasureSpec.makeMeasureSpec(most, View.MeasureSpec.AT_MOST), free);
+			wide = Math.max(wide, row.getMeasuredWidth());
+			tall += row.getMeasuredHeight();
+		}
+		wide = Math.max(Math.round(112 * density), Math.min(most, wide));
+		int[] at = new int[2];
+		anchor.getLocationOnScreen(at);
+		int screen = root.getHeight() - root.getPaddingBottom();
+		int margin = Math.round(48 * density);
+		int below = screen - margin - at[1] - anchor.getHeight();
+		int above = at[1] - margin;
+		popup.setWidth(wide);
+		// Compose's order: from the anchor's left, to the anchor's right, else against the screen's edge.
+		int left = at[0];
+		if (left + wide > root.getWidth()) {
+			left = at[0] + anchor.getWidth() - wide;
+			if (left < 0) left = root.getWidth() - wide;
+		}
+		popup.setHorizontalOffset(left - at[0]);
+		// Below, else above, else as much as the screen holds, up from the bottom margin.
+		if (tall <= below) {
+			popup.setHeight(tall);
+		} else if (tall <= above) {
+			popup.setHeight(tall);
+			popup.setVerticalOffset(-(tall + anchor.getHeight()));
+		} else {
+			int shown = Math.min(tall, screen - 2 * margin);
+			popup.setHeight(shown);
+			popup.setVerticalOffset(screen - margin - shown - at[1] - anchor.getHeight());
+		}
+		popup.setAdapter(new BaseAdapter() {
+			@Override public int getCount() { return items.length; }
+			@Override public Object getItem(int position) { return items[position]; }
+			@Override public long getItemId(int position) { return position; }
+			@Override public View getView(int position, View old, ViewGroup parent) {
+				return menuRow(maker, items[position], old, parent, position);
+			}
+		});
+		final boolean[] chosen = { false };
+		popup.setOnItemClickListener((a, v, position, row) -> {
+			chosen[0] = true;
+			send(ANSWERED, id, position + 1, 0, null);
+			popup.dismiss();
+		});
+		popup.setOnDismissListener(() -> {
+			if (!chosen[0]) send(ANSWERED, id, 0, 0, null);
+		});
+		popup.show();
+		ListView list = popup.getListView();
+		if (list != null) {
+			list.setVerticalScrollBarEnabled(false);
+			list.setDivider(null);
+			int pad = Math.round(8 * density);
+			list.setPadding(0, pad, 0, pad);
+			list.setClipToPadding(false);
+		}
+	}
+
+	/** Styled text in a label, in the form PHONE_RICH_ROW writes. */
+	public void sephoneRich(View view, String wire) {
+		String[] parts = wire.split(Rows.BLOCK, -1);
+		if (parts.length > 1 && view instanceof TextView) {
+			// A label keeps the padding and the placing it was given.
+			TextView label = (TextView) view;
+			int left = label.getPaddingLeft(), top = label.getPaddingTop();
+			int right = label.getPaddingRight(), bottom = label.getPaddingBottom();
+			int gravity = label.getGravity();
+			Rows.fill(label, parts[1], getResources().getDisplayMetrics().density);
+			label.setPadding(left, top, right, bottom);
+			label.setGravity(gravity);
+		}
+	}
+
+	/** The window's backdrop: one color, with another across the inset at the bottom. */
+	private final class Edges extends Drawable {
+		private final int top;
+		private final android.graphics.Paint paint = new android.graphics.Paint();
+
+		Edges(int top, int bottom) {
+			this.top = top;
+			paint.setColor(bottom);
+		}
+
+		@Override public void draw(Canvas canvas) {
+			canvas.drawColor(top);
+			int inset = root.getPaddingBottom();
+			if (inset > 0) {
+				canvas.drawRect(0, root.getHeight() - inset, root.getWidth(), root.getHeight(), paint);
+			}
+		}
+
+		@Override public void setAlpha(int alpha) { }
+		@Override public void setColorFilter(ColorFilter filter) { }
+		@Override public int getOpacity() { return PixelFormat.OPAQUE; }
 	}
 
 	public void sephoneShow(View view) {
@@ -329,8 +538,15 @@ public class EifPhoneControlsActivity extends EifPhoneActivity {
 
 	/** A list's rows. The text waits in the C side's table, filled by Eiffel on request. */
 	public static final class Rows extends BaseAdapter {
+		private static final char RICH = '\u0001';
+		static final String BLOCK = "\u001E";
+		private static final String RUN = "\u001D";
+		private static final String FIELD = "\u001F";
+		private static final HashMap<String, Typeface> FACES = new HashMap<>();
+
 		private final int id;
 		private int count;
+		private boolean gapSet;
 
 		public Rows(int id) {
 			this.id = id;
@@ -346,16 +562,182 @@ public class EifPhoneControlsActivity extends EifPhoneActivity {
 		@Override public long getItemId(int position) { return position; }
 
 		@Override public View getView(int position, View old, ViewGroup parent) {
-			TextView view = (TextView) old;
+			byte[] bytes = sephoneRowText(id, position);
+			String text = bytes == null ? "" : new String(bytes, StandardCharsets.UTF_8);
+			if (!text.isEmpty() && text.charAt(0) == RICH) {
+				return richRow(text, old, parent, position);
+			}
+			TextView view = old instanceof TextView ? (TextView) old : null;
 			if (view == null) {
 				view = new TextView(parent.getContext());
 				int pad = Math.round(14 * parent.getResources().getDisplayMetrics().density);
 				view.setPadding(pad, pad, pad, pad);
 				view.setTextSize(16);
 			}
-			byte[] text = sephoneRowText(id, position);
-			view.setText(text == null ? "" : new String(text, StandardCharsets.UTF_8));
+			view.setText(text);
 			return view;
+		}
+
+		/** A row of styled text blocks. PHONE_RICH_ROW writes the form read here. */
+		View richRow(String text, View old, ViewGroup parent, int position) {
+			float density = parent.getResources().getDisplayMetrics().density;
+			if (parent instanceof ListView && !gapSet) {
+				ListView list = (ListView) parent;
+				list.setDivider(new ColorDrawable(0));
+				list.setDividerHeight(Math.round(2 * density));
+				gapSet = true;
+			}
+			LinearLayout row = old instanceof LinearLayout ? (LinearLayout) old : null;
+			if (row == null) {
+				row = new LinearLayout(parent.getContext());
+				row.setOrientation(LinearLayout.VERTICAL);
+			}
+			String[] parts = text.split(BLOCK, -1);
+			String[] head = parts[0].substring(1).split(FIELD, -1);
+			// A row that changes color in place fades to it, as Compose's animateColorAsState does.
+			int wash = (int) Long.parseLong(head[0], 16);
+			Object seen = row.getTag();
+			if (seen instanceof int[] && ((int[]) seen)[0] == position && ((int[]) seen)[1] != wash) {
+				android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofArgb(((int[]) seen)[1], wash);
+				fade.setDuration(400);
+				final LinearLayout fading = row;
+				fade.addUpdateListener(a -> fading.setBackgroundColor((int) a.getAnimatedValue()));
+				fade.start();
+			} else {
+				row.setBackgroundColor(wash);
+			}
+			row.setTag(new int[] { position, wash });
+			int sides = Math.round(Integer.parseInt(head[1]) * density);
+			row.setPadding(sides, Math.round(Integer.parseInt(head[2]) * density), sides, Math.round(Integer.parseInt(head[3]) * density));
+			int blocks = parts.length - 1;
+			while (row.getChildCount() > blocks) {
+				row.removeViewAt(row.getChildCount() - 1);
+			}
+			for (int i = 0; i < blocks; i++) {
+				if (i == row.getChildCount()) {
+					row.addView(new TextView(parent.getContext()), new LinearLayout.LayoutParams(
+						ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+				}
+				fill((TextView) row.getChildAt(i), parts[i + 1], density);
+			}
+			return row;
+		}
+
+		static void fill(TextView view, String block, float density) {
+			String[] runs = block.split(RUN, -1);
+			String[] head = runs[0].split(FIELD, -1);
+			float size = Float.parseFloat(head[1]);
+			view.setTypeface(typeface(view, head[0]));
+			view.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
+			view.setTextColor((int) Long.parseLong(head[3], 16));
+			view.setIncludeFontPadding(false);
+			// Large font scales are not linear: 18sp and 27sp do not grow alike. Lines keep their
+			// ratio to the text, as Compose and TextView do, or big text sits too close together.
+			float line = view.getTextSize() * Float.parseFloat(head[2]) / size;
+			boolean rtl = head[4].equals("1");
+			view.setTextDirection(rtl ? View.TEXT_DIRECTION_RTL : View.TEXT_DIRECTION_FIRST_STRONG);
+			view.setTextAlignment(View.TEXT_ALIGNMENT_GRAVITY);
+			view.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+			view.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+			boolean material = head.length > 6;
+			view.setLetterSpacing(material ? Float.parseFloat(head[6]) : 0f);
+			boolean centered = head.length > 7;
+			view.setGravity(centered ? Gravity.CENTER_HORIZONTAL : rtl ? Gravity.RIGHT : Gravity.LEFT);
+			view.setPadding(0, Math.round(Integer.parseInt(head[5]) * density), 0, 0);
+			SpannableStringBuilder words = new SpannableStringBuilder();
+			for (int i = 1; i < runs.length; i++) {
+				String[] run = runs[i].split(FIELD, 4);
+				int flags = Integer.parseInt(run[0]);
+				long color = Long.parseLong(run[1], 16);
+				float scale = Float.parseFloat(run[2]);
+				int from = words.length();
+				words.append(run[3]);
+				int to = words.length();
+				// The rise is measured at the block's size, so it goes on before the run's own size.
+				if ((flags & 4) != 0) words.setSpan(new SuperscriptSpan(), from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				if (color != 0) words.setSpan(new ForegroundColorSpan((int) color), from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				if (scale > 0f) words.setSpan(new RelativeSizeSpan(scale), from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				if ((flags & 3) != 0) words.setSpan(new StyleSpan(flags & 3), from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				if ((flags & 8) != 0) {
+					if (Build.VERSION.SDK_INT >= 28) {
+						words.setSpan(new TypefaceSpan(Typeface.create(view.getTypeface(), 600, (flags & 2) != 0)), from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+					} else {
+						words.setSpan(new StyleSpan(Typeface.BOLD), from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+					}
+				}
+				if ((flags & 32) != 0) words.setSpan(new UnderlineSpan(), from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				if ((flags & 16) != 0 && view instanceof EifPhoneTappable) {
+					final int run_index = i - 1;
+					final EifPhoneTappable tappable = (EifPhoneTappable) view;
+					words.setSpan(new ClickableSpan() {
+						@Override public void onClick(View v) { tappable.tapped(run_index); }
+						@Override public void updateDrawState(TextPaint paint) { }
+					}, from, to, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				}
+			}
+			words.setSpan(new ExactLine((int) Math.ceil(line), words.length(), material), 0, words.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+			view.setText(words);
+		}
+
+		/**
+		 * Every line exactly `height' tall, whatever it holds, with the extra shared in the
+		 * font's own proportions, measured once on the first line. The block's first line keeps
+		 * the font's own top and its last line the font's own bottom. This is Compose's rule.
+		 * Material's text styles have another: `whole' lines, all full height, the text centered.
+		 */
+		private static final class ExactLine implements LineHeightSpan {
+			private final int height;
+			private final int length;
+			private final boolean whole;
+			private boolean measured;
+			private int ascent, descent, firstAscent, lastDescent;
+
+			ExactLine(int height, int length, boolean whole) {
+				this.height = height;
+				this.length = length;
+				this.whole = whole;
+			}
+
+			@Override public void chooseHeight(CharSequence text, int start, int end, int top, int line, Paint.FontMetricsInt fm) {
+				int current = fm.descent - fm.ascent;
+				boolean first = start == 0;
+				boolean last = end == length;
+				if (whole && current > 0) {
+					if (!measured) {
+						descent = fm.descent + (int) Math.ceil((height - current) / 2f);
+						ascent = descent - height;
+						measured = true;
+					}
+					fm.ascent = ascent;
+					fm.descent = descent;
+				} else if (current > 0 && !(first && last)) {
+					if (!measured) {
+						float above = Math.abs(fm.ascent) / (float) current;
+						int extra = height - current;
+						descent = fm.descent + (int) Math.ceil(extra <= 0 ? extra * above : extra * (1f - above));
+						ascent = descent - height;
+						firstAscent = fm.ascent;
+						lastDescent = fm.descent;
+						measured = true;
+					}
+					fm.ascent = first ? firstAscent : ascent;
+					fm.descent = last ? lastDescent : descent;
+				}
+			}
+		}
+
+		/** "" is the phone's own, "serif" its serif, anything else a font file among the app's assets. */
+		private static Typeface typeface(View view, String name) {
+			if (name.isEmpty()) return Typeface.DEFAULT;
+			if (name.equals("serif")) return Typeface.SERIF;
+			if (name.equals("monospace")) return Typeface.MONOSPACE;
+			if (name.startsWith("sans-serif")) return Typeface.create(name, Typeface.NORMAL);
+			Typeface found = FACES.get(name);
+			if (found == null) {
+				found = Typeface.createFromAsset(view.getContext().getAssets(), name);
+				FACES.put(name, found);
+			}
+			return found;
 		}
 	}
 

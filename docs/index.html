@@ -52,9 +52,10 @@
             </section>
             <section id="status">
                 <h2>Status</h2>
-                <p><strong>Version 0.4.0: early, working, not yet widely used.</strong></p>
+                <p><strong>Version 0.5.0: early, working, not yet widely used.</strong></p>
                 <ul>
-                <li>103 tool tests, 60 logic tests and 27 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
+                <li>103 tool tests, 60 logic tests and 30 on-device tests pass, with zero warnings. On-device tests ran on the emulator.</li>
+                <li>A full Bible study application has been built with it and used on one real phone.</li>
                 <li>On the emulator, a scripted run of 48 steps drove real Android controls from Eiffel, and 30 more drove <code>simple_widgets</code> by touch, Hebrew typing included. <code>simple_widgets</code>' own 7GUIs benchmark runs on Android with its source unchanged.</li>
                 <li>On a real ARM phone, the touch pad took five fingers at once. Putting a full screen up took 1.8 ms on average and 6.5 ms at worst.</li>
                 <li>Random-input stress: 9,000 events on each of the fast and checked builds of the touch pad, with no crash.</li>
@@ -70,7 +71,8 @@
 <li><strong><code>simple_widgets</code> on the phone is young.</strong> <code>android_shell</code> has no printer, spell checker or screen reader, and there is no copy and paste. Android's own controls have none of these gaps.</li>
 <li><strong>Shaped text in <code>simple_widgets</code> has limits.</strong> A phone with no Hebrew font at all shows boxes. Emoji show as boxes, because no emoji pictures are packed. Lines break only after a space, hyphen or maqaf.</li>
 <li><strong>The general route reaches public methods that take nothing, a whole number, a true/false or a text.</strong> A method with other arguments needs its own class.</li>
-<li><strong>Read-aloud needs the language's voice on the phone.</strong> It has been heard on one real phone, in English and Hebrew. Hebrew stayed silent, with a failure reported, until the Hebrew voice was downloaded in the phone's text-to-speech settings.</li>
+<li><strong>Read-aloud needs the language's voice on the phone.</strong> It has been heard on one real phone, in English, Hebrew and Greek. A language with no voice is skipped until its voice is downloaded in the phone's text-to-speech settings.</li>
+<li><strong>The 0.5.0 control classes have one large application behind them.</strong> They have no small example in this repository yet. A menu too tall for the space below its button stays under the button.</li>
 <li><strong><code>eifphone run</code> shows the first 3 seconds of the log.</strong> Use <code>eifphone log</code> for the rest.</li>
 <li><strong>On-device tests have run on the emulator only.</strong> Speed, multi-touch, Home and return, and rotation were checked by hand on one real ARM phone.</li>
 <li><strong>Two one-off failures are unexplained.</strong> <code>tap_arrives</code> failed once, in the first run after a stress session on a fresh emulator, then passed. One stress run stopped on a crash from a process that was not identified, and the same run passed when repeated.</li>
