@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2026-11-05
+
+### Added
+- **`orientation` under `[android]`:** `"portrait"` or `"landscape"` holds the screen that way. Leave it out and the app follows the phone, as before.
+
 ## [0.5.0] - 2026-11-05
 
 ### Added

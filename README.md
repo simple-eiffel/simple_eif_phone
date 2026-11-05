@@ -14,9 +14,9 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.5.0: early, working, not yet widely used.**
+**0.5.1: early, working, not yet widely used.**
 
-- 103 tool tests, 60 logic tests and 30 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
+- 105 tool tests, 60 logic tests and 30 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
 - A full Bible study application has been built with it and used on one real phone: reading, search, notes, read-aloud in English, Hebrew and Greek, maps, and import and export.
 - Android's own controls, and `simple_widgets` drawn by cairo, have run on the emulator and on one real phone.
 - On a real ARM phone, the touch pad demo took five fingers at once, and a full screen went up in 6.5 ms at worst.

@@ -243,6 +243,9 @@ feature -- Manifest
 			Result.append ({STRING_32} "            android:name=%"" + l_activity + {STRING_32} "%"%N")
 			Result.append ({STRING_32} "            android:exported=%"true%"%N")
 			Result.append ({STRING_32} "            android:windowSoftInputMode=%"adjustResize%"%N")
+			if attached project.orientation as al_orientation then
+				Result.append ({STRING_32} "            android:screenOrientation=%"" + al_orientation + {STRING_32} "%"%N")
+			end
 			Result.append ({STRING_32} "            android:configChanges=%"" + Manifest_config_changes.to_string_32 + {STRING_32} "%"%N")
 			Result.append ({STRING_32} "            android:theme=%"@android:style/Theme.Black.NoTitleBar%">%N")
 			Result.append ({STRING_32} "            <meta-data android:name=%"android.app.lib_name%" android:value=%"" + library_name.to_string_32 + {STRING_32} "%"/>%N")

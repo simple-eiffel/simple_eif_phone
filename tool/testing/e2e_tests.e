@@ -196,13 +196,14 @@ feature -- Build (AC-2, AC-4, FR-008, FR-011)
 			l_manifest: STRING
 		do
 			d := new_project ("controlsapp")
-			toml_replace (d, "java_helper = false", "controls = true")
+			toml_replace (d, "java_helper = false", "controls = true%Norientation = %"portrait%"")
 			run_tool ({STRING_32} "build " + text_of (d))
 			assert ("built: " + last_text, last_exit = 0)
 			assert ("dex stage", last_text.has_substring ("ok  dex"))
 			l_manifest := read_text (d.extended ("build").extended ("AndroidManifest.xml"))
 			assert ("hasCode true", l_manifest.has_substring ("android:hasCode=%"true%""))
 			assert ("controls activity", l_manifest.has_substring ("EifPhoneControlsActivity"))
+			assert ("held upright", l_manifest.has_substring ("android:screenOrientation=%"portrait%""))
 		end
 
 	test_q12_icon_and_permissions_in_manifest

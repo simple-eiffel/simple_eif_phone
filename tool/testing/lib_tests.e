@@ -128,6 +128,37 @@ feature -- Project
 			assert ("debug signing", not p.has_release_key)
 		end
 
+	test_project_orientation_kept
+			-- orientation is optional, and kept when given.
+		local
+			p: EIFPHONE_PROJECT
+			l_toml: STRING
+		do
+			create p.make
+			p.load (project_folder ("noorient", Good_toml))
+			assert ("valid without", p.is_valid)
+			assert ("follows the phone", p.orientation = Void)
+			l_toml := Good_toml.twin
+			l_toml.replace_substring_all ("min_sdk = 26", "min_sdk = 26%Norientation = %"portrait%"")
+			p.load (project_folder ("orient", l_toml))
+			assert ("valid with", p.is_valid)
+			assert ("kept", attached p.orientation as al_o and then al_o.same_string ({STRING_32} "portrait"))
+		end
+
+	test_project_bad_orientation_named
+			-- Only portrait and landscape are allowed.
+		local
+			p: EIFPHONE_PROJECT
+			l_toml: STRING
+		do
+			create p.make
+			l_toml := Good_toml.twin
+			l_toml.replace_substring_all ("min_sdk = 26", "min_sdk = 26%Norientation = %"sideways%"")
+			p.load (project_folder ("badorient", l_toml))
+			assert ("invalid", not p.is_valid)
+			assert ("named", p.errors.first.starts_with ({STRING_32} "eifphone.toml: [android] orientation"))
+		end
+
 	test_project_bad_min_sdk_named
 			-- min_sdk = 21 gives an error naming the file, the table and the key.
 		local
