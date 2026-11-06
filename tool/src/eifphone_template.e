@@ -80,6 +80,7 @@ feature {NONE} -- Texts
 			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
 		</option>
 		<setting name="console_application" value="true"/>
+		<setting name="exception_trace" value="true"/>
 		<capability>
 			<void_safety support="all"/>
 		</capability>

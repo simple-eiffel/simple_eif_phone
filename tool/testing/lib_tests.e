@@ -392,6 +392,111 @@ feature {NONE} -- Fixtures
 			f.close
 		end
 
+feature -- Toolchain: finding Gobo (Eric Bezault, 2026-11-05)
+
+	test_gobo_library_is_optional
+			-- With GOBO_LIBRARY unset, none is assumed and doctor does not ask for one.
+		local
+			t: EIFPHONE_TOOLCHAIN
+			e: SIMPLE_ENV
+			l_kept: detachable STRING_32
+		do
+			create e
+			l_kept := e.get ("GOBO_LIBRARY")
+			set_or_clear ("GOBO_LIBRARY", Void)
+			create t.make_default
+			t.check_all
+			set_or_clear ("GOBO_LIBRARY", l_kept)
+			assert ("none assumed", t.gobo_library = Void)
+			assert ("not asked for", not t.missing.has ("gobo_library"))
+		end
+
+	test_gec_found_on_path
+			-- With GOBO unset, gec comes from the PATH.
+		local
+			t: EIFPHONE_TOOLCHAIN
+			l_dir: PATH
+		do
+			l_dir := folder_with_gec ("gec_on_path")
+			with_gobo_and_path (Void, l_dir.name)
+			create t.make_default
+			restore_gobo_and_path
+			assert ("from the path: " + t.gec.utf_8_name, t.gec.is_same_file_as (l_dir.extended ("gec.exe")))
+		end
+
+	test_gobo_wins_over_path
+			-- GOBO, when set, comes before the PATH.
+		local
+			t: EIFPHONE_TOOLCHAIN
+			l_dir: PATH
+		do
+			l_dir := folder_with_gec ("gec_on_path")
+			with_gobo_and_path ("C:\gobo_here", l_dir.name)
+			create t.make_default
+			restore_gobo_and_path
+			assert ("from GOBO: " + t.gec.utf_8_name, t.gec.name.same_string ({STRING_32} "C:\gobo_here\bin\gec.exe"))
+		end
+
+	test_gec_default_when_nowhere
+			-- With neither, the default location stands.
+		local
+			t: EIFPHONE_TOOLCHAIN
+		do
+			with_gobo_and_path (Void, "C:\no_such_folder_here")
+			create t.make_default
+			restore_gobo_and_path
+			assert ("default: " + t.gec.utf_8_name, t.gec.name.same_string (t.Default_gec.to_string_32))
+		end
+
+feature {NONE} -- Gobo fixtures
+
+	folder_with_gec (a_name: STRING_8): PATH
+			-- A folder under testing\tmp holding an empty gec.exe.
+		local
+			l_file: RAW_FILE
+		do
+			Result := (create {EXECUTION_ENVIRONMENT}).current_working_path.extended ("testing").extended ("tmp").extended (a_name)
+			(create {DIRECTORY}.make_with_path (Result)).recursive_create_dir
+			create l_file.make_with_path (Result.extended ("gec.exe"))
+			l_file.open_write
+			l_file.close
+		end
+
+	with_gobo_and_path (a_gobo: detachable READABLE_STRING_GENERAL; a_path: READABLE_STRING_GENERAL)
+			-- Set both, keeping what they were for `restore_gobo_and_path'.
+		local
+			e: SIMPLE_ENV
+		do
+			create e
+			kept_gobo := e.get ("GOBO")
+			kept_path := e.get ("PATH")
+			set_or_clear ("GOBO", a_gobo)
+			set_or_clear ("PATH", a_path)
+		end
+
+	restore_gobo_and_path
+			-- Put back what `with_gobo_and_path' kept.
+		do
+			set_or_clear ("GOBO", kept_gobo)
+			set_or_clear ("PATH", kept_path)
+		end
+
+	set_or_clear (a_name: READABLE_STRING_GENERAL; a_value: detachable READABLE_STRING_GENERAL)
+			-- Give `a_name' the value `a_value', or remove it if there is none.
+			-- Windows has no empty variables, so setting "" is not an option.
+		local
+			e: SIMPLE_ENV
+		do
+			create e
+			if attached a_value as al_v and then not al_v.is_empty then
+				e.set (a_name, al_v)
+			else
+				e.unset (a_name)
+			end
+		end
+
+	kept_gobo, kept_path: detachable STRING_32
+
 feature -- Toolchain
 
 	test_toolchain_default_paths

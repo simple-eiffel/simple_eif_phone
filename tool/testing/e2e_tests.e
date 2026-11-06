@@ -58,6 +58,45 @@ feature -- Doctor (AC-1, Task 10)
 			assert ("folder named", last_text.has_substring ("NOT FOUND: gobo_library"))
 		end
 
+	test_gec_version_comes_from_gec
+			-- The right gec passes wherever it lives; a folder name proves nothing.
+		local
+			d: PATH
+		do
+			d := new_project ("gecright")
+			write_text (d.extended ("gec.bat"), "@echo gec version 26.10.18+c84ee2f%R%N")
+			toml_append (d, "%N[tools]%Ngec = %"" + slashed (d.extended ("gec.bat")) + "%"%N")
+			run_tool ({STRING_32} "doctor " + text_of (d))
+			assert ("no version line: " + last_text, not last_text.has_substring ("VERSION: gec"))
+		end
+
+	test_wrong_gec_version_named
+			-- A gec of another version is named, with the version it gave.
+		local
+			d: PATH
+		do
+			d := new_project ("gecwrong")
+			write_text (d.extended ("gec.bat"), "@echo gec version 25.01%R%N")
+			toml_append (d, "%N[tools]%Ngec = %"" + slashed (d.extended ("gec.bat")) + "%"%N")
+			run_tool ({STRING_32} "doctor " + text_of (d))
+			assert ("exit 3: " + last_exit.out, last_exit = 3)
+			assert ("named: " + last_text, last_text.has_substring ("VERSION: gec") and last_text.has_substring ("25.01"))
+		end
+
+	test_new_traces_only_the_checked_target
+			-- `new' turns on exception_trace in `app', so a crash names its routines;
+			-- `app_fast' stays without it.
+		local
+			l_text: STRING
+			l_fast: INTEGER
+		do
+			l_text := read_text (new_project ("tracesetting").extended ("app.ecf"))
+			l_fast := l_text.substring_index ("<target name=%"app_fast%">", 1)
+			assert ("fast target there", l_fast > 0)
+			assert ("in the checked target", l_text.substring (1, l_fast).has_substring ("exception_trace"))
+			assert ("not in the fast target", not l_text.substring (l_fast, l_text.count).has_substring ("exception_trace"))
+		end
+
 	test_t10_prompting_command_returns
 			-- RA-2: a command that reads its input gets end-of-file at once, so
 			-- it cannot hang a build. simple_process gives every child an empty

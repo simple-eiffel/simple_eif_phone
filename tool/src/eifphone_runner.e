@@ -31,6 +31,30 @@ feature -- Execution
 			-- `java_home' when given (RA-12: apksigner.bat refuses to start without it).
 		require
 			command_given: not a_command.is_empty
+		do
+			execute (a_command, a_directory)
+			write_log (a_log, a_command)
+		ensure
+			ran: has_run
+			seconds_ok: last_seconds >= 0.0
+			launch_failed_is_failure: not process_started implies not succeeded
+		end
+
+	ask (a_command: READABLE_STRING_32; a_directory: PATH)
+			-- Run `a_command' in `a_directory' for its output alone, with no log file.
+		require
+			command_given: not a_command.is_empty
+		do
+			execute (a_command, a_directory)
+		ensure
+			ran: has_run
+			launch_failed_is_failure: not process_started implies not succeeded
+		end
+
+	execute (a_command: READABLE_STRING_32; a_directory: PATH)
+			-- Run `a_command' in `a_directory' and keep what happened.
+		require
+			command_given: not a_command.is_empty
 		local
 			l_process: SIMPLE_PROCESS
 			l_start: NATURAL_64
@@ -52,7 +76,6 @@ feature -- Execution
 			else
 				create last_output.make_empty
 			end
-			write_log (a_log, a_command)
 		ensure
 			ran: has_run
 			seconds_ok: last_seconds >= 0.0
