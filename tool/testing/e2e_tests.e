@@ -258,6 +258,23 @@ feature -- Build (AC-2, AC-4, FR-008, FR-011)
 			assert ("held upright", l_manifest.has_substring ("android:screenOrientation=%"portrait%""))
 		end
 
+	test_recorder_app
+			-- recorder = true brings the microphone permissions and the foreground service.
+		local
+			d: PATH
+			l_manifest: STRING
+		do
+			d := new_project ("recorderapp")
+			toml_replace (d, "java_helper = false", "controls = true%Nrecorder = true")
+			run_tool ({STRING_32} "build " + text_of (d))
+			assert ("built: " + last_text, last_exit = 0)
+			l_manifest := read_text (d.extended ("build").extended ("AndroidManifest.xml"))
+			assert ("microphone", l_manifest.has_substring ("android.permission.RECORD_AUDIO"))
+			assert ("service type permission", l_manifest.has_substring ("android.permission.FOREGROUND_SERVICE_MICROPHONE"))
+			assert ("service", l_manifest.has_substring ("EifPhoneRecordingService"))
+			assert ("microphone service", l_manifest.has_substring ("android:foregroundServiceType=%"microphone%""))
+		end
+
 	test_q12_icon_and_permissions_in_manifest
 			-- Q12: [app] icon and [android] permissions reach the finished APK.
 		local

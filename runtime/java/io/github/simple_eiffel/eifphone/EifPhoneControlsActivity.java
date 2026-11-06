@@ -158,6 +158,12 @@ public class EifPhoneControlsActivity extends EifPhoneActivity {
 	}
 
 	@Override
+	public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
+		super.onRequestPermissionsResult(code, permissions, results);
+		EifPhoneRecorder.permissionResult(code, permissions, results);
+	}
+
+	@Override
 	public void onBackPressed() {
 		if (backId > 0) {
 			send(BACK, backId, 0, 0, null);

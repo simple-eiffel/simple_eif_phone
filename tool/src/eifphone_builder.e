@@ -154,6 +154,13 @@ feature -- Basic operations
 
 feature -- Stages
 
+	Recorder_permissions: ARRAY [STRING_8]
+			-- What `recorder = true' asks Android for.
+		once
+			Result := <<"android.permission.RECORD_AUDIO", "android.permission.FOREGROUND_SERVICE",
+				"android.permission.FOREGROUND_SERVICE_MICROPHONE", "android.permission.POST_NOTIFICATIONS">>
+		end
+
 	Stage_generate_c: STRING_8 = "generate_c"
 	Stage_compile: STRING_8 = "compile"
 			-- Followed by " <abi>" in a result name.
@@ -215,6 +222,11 @@ feature -- Manifest
 			across project.permissions as ic loop
 				Result.append ({STRING_32} "    <uses-permission android:name=%"" + xml_escaped (ic.to_string_32) + {STRING_32} "%"/>%N")
 			end
+			if project.uses_recorder then
+				across Recorder_permissions as ic loop
+					Result.append ({STRING_32} "    <uses-permission android:name=%"" + ic.to_string_32 + {STRING_32} "%"/>%N")
+				end
+			end
 			if project.uses_java_helper then
 					-- Android 11 on: the speech engine stays hidden from an app that does not ask.
 				Result.append ({STRING_32} "    <queries>%N        <intent>%N            <action android:name=%"android.intent.action.TTS_SERVICE%"/>%N        </intent>%N    </queries>%N")
@@ -248,6 +260,12 @@ feature -- Manifest
 			Result.append ({STRING_32} "                <category android:name=%"android.intent.category.LAUNCHER%"/>%N")
 			Result.append ({STRING_32} "            </intent-filter>%N")
 			Result.append ({STRING_32} "        </activity>%N")
+			if project.uses_recorder then
+				Result.append ({STRING_32} "        <service%N")
+				Result.append ({STRING_32} "            android:name=%"io.github.simple_eiffel.eifphone.EifPhoneRecordingService%"%N")
+				Result.append ({STRING_32} "            android:exported=%"false%"%N")
+				Result.append ({STRING_32} "            android:foregroundServiceType=%"microphone%"/>%N")
+			end
 			Result.append ({STRING_32} "    </application>%N")
 			Result.append ({STRING_32} "</manifest>%N")
 		ensure

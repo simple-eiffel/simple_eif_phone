@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **`PHONE_RECORDER`:** records the microphone to a 16 kHz mono WAV file, with the screen locked if need be. It asks for the microphone, and Android shows a notification while it records. Needs `recorder = true` under `[android]`, which needs `controls = true`. The file stays readable if the app is killed, losing at most the last 10 seconds.
+
 ## [0.5.4] - 2026-11-05
 
 ### Changed
