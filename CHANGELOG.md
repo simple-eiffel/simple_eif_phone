@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.5.4] - 2026-11-05
 
 ### Changed
 - **`gec` is found on your `PATH`.** `GOBO` is still used if you set it, but Gobo's tools do not need it, so neither does `eifphone`.

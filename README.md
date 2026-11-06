@@ -14,7 +14,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.5.3: early, working, not yet widely used.**
+**0.5.4: early, working, not yet widely used.**
 
 - 107 tool tests, 60 logic tests and 30 on-device tests pass, with zero warnings. On-device tests ran on the emulator.
 - A full Bible study application has been built with it and used on one real phone: reading, search, notes, read-aloud in English, Hebrew and Greek, maps, and import and export.
