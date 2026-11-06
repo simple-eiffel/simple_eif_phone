@@ -89,9 +89,10 @@ takes_typing_at (a_x, a_y: INTEGER): BOOLEAN
                 <h3>How the tool finds things</h3>
                 <p>It looks in this order:</p>
                 <ol>
-                <li>The standard variables: <code>JAVA_HOME</code>, <code>ANDROID_HOME</code> or <code>ANDROID_SDK_ROOT</code>, <code>ANDROID_NDK_HOME</code>, <code>GOBO</code>, <code>GOBO_LIBRARY</code>, <code>ISE_LIBRARY</code>, <code>SIMPLE_EIFFEL</code>.</li>
+                <li>The standard variables: <code>JAVA_HOME</code>, <code>ANDROID_HOME</code> or <code>ANDROID_SDK_ROOT</code>, <code>ANDROID_NDK_HOME</code>, <code>ISE_LIBRARY</code>, <code>SIMPLE_EIFFEL</code>.</li>
+                <li>For <code>gec</code>, the <code>GOBO</code> variable if you set one, and otherwise your <code>PATH</code>. Gobo's tools do not need <code>GOBO</code> or <code>GOBO_LIBRARY</code>, so putting Gobo's <code>bin</code> folder on your <code>PATH</code> is enough.</li>
                 <li>The <code>D:\android</code> and <code>D:\prod</code> layout.</li>
-                <li>A project's <code>[tools]</code> table, which overrides both.</li>
+                <li>A project's <code>[tools]</code> table, which overrides all of these.</li>
                 </ol>
             </section>
             <section id="project">

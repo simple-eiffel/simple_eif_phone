@@ -187,7 +187,9 @@ feature {NONE} -- Doctor and new
 			if exit_code = Exit_ok then
 				t.check_all
 				show_tool ("gec", t.gec)
-				show_tool ("gobo library", t.gobo_library)
+				if attached t.gobo_library as al_p then
+					show_tool ("gobo library", al_p)
+				end
 				show_tool ("ise library", t.ise_library)
 				show_tool ("simple_eiffel", t.simple_eiffel)
 				show_tool ("ndk clang", t.clang)

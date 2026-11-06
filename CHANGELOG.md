@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **`gec` is found on your `PATH`.** `GOBO` is still used if you set it, but Gobo's tools do not need it, so neither does `eifphone`.
+- **`GOBO_LIBRARY` is no longer required.** `doctor` checks a Gobo library only if `GOBO_LIBRARY` or `[tools]` names one.
+- **`doctor` asks `gec` for its version.** It used to look for `26.10` in the folder name, so a correct `gec` in `C:\gobo\bin` was refused.
+- **`eifphone new` turns on `exception_trace` in the `app` target.** `eifphone` compiles with `gec --finalize`, which leaves that setting off, so crash traces said only "root's creation". They now name each routine. `app_fast` stays without it.
+
 ## [0.5.3] - 2026-11-05
 
 ### Fixed

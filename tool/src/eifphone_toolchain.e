@@ -1,14 +1,17 @@
 note
 	description: "[
 		Where the external tools live, and whether they are the pinned
-		versions: gec, the Gobo library, the NDK (clang, native_app_glue),
+		versions: gec, the NDK (clang, native_app_glue),
 		build-tools (aapt2, aapt, zipalign, apksigner, d8), the platform
 		android.jar, the JDK (javac, keytool) and adb.
 		Lookup order (Larry, 2026-11-03: "standard settings first"):
 		1. the standard environment variables (JAVA_HOME, ANDROID_HOME or
 		   ANDROID_SDK_ROOT, ANDROID_NDK_HOME, GOBO);
-		2. Larry's layout (D:\prod\gobo-26.10, D:\android\...);
-		3. a project's [tools] table, which overrides both.
+		2. for gec, the PATH: Gobo's tools need neither GOBO nor GOBO_LIBRARY
+		   set (Eric Bezault, 2026-11-05);
+		3. Larry's layout (D:\prod\gobo-26.10, D:\android\...);
+		4. a project's [tools] table, which overrides all of these.
+		`gobo_library' is optional: nothing here needs it unless it is named.
 	]"
 	author: "Larry Rix"
 
@@ -47,15 +50,9 @@ feature {NONE} -- Initialization
 			else
 				create jdk.make_from_string (Default_jdk)
 			end
-			if attached l_env.get ("GOBO") as al_v and then not al_v.is_empty then
-				gec := (create {PATH}.make_from_string (al_v)).extended ("bin").extended ("gec.exe")
-			else
-				create gec.make_from_string (Default_gec)
-			end
+			create gec.make_from_string (Default_gec)
 			if attached l_env.get ("GOBO_LIBRARY") as al_v and then not al_v.is_empty then
 				create gobo_library.make_from_string (al_v)
-			else
-				create gobo_library.make_from_string (Default_gobo_library)
 			end
 			if attached l_env.get ("ISE_LIBRARY") as al_v and then not al_v.is_empty then
 				create ise_library.make_from_string (al_v)
@@ -71,6 +68,7 @@ feature {NONE} -- Initialization
 			end
 			create missing.make (0)
 			create pin_mismatches.make (0)
+			look_for_gec
 		ensure
 			not_checked: not is_checked
 		end
@@ -100,7 +98,11 @@ feature -- Configuration
 
 feature -- Paths
 
-	gec, gobo_library, ndk, build_tools, platform_jar, jdk, adb: PATH
+	gec, ndk, build_tools, platform_jar, jdk, adb: PATH
+
+	gobo_library: detachable PATH
+			-- Gobo's library, only if GOBO_LIBRARY or [tools] names one.
+
 
 	ise_library: PATH
 			-- EiffelStudio folder (gec maps base.ecf through it).
@@ -129,7 +131,9 @@ feature -- Checking
 			missing.wipe_out
 			pin_mismatches.wipe_out
 			require_file ("gec", gec)
-			require_folder ("gobo_library", gobo_library)
+			if attached gobo_library as al_p then
+				require_folder ("gobo_library", al_p)
+			end
 			require_folder ("ise_library", ise_library)
 			require_folder ("simple_eiffel", simple_eiffel)
 			require_file ("ndk clang", clang)
@@ -146,7 +150,7 @@ feature -- Checking
 			check_pin ("ndk", ndk, Pinned_ndk)
 			check_pin ("build-tools", build_tools, Pinned_build_tools)
 			check_pin ("platform", platform_jar, Pinned_platform)
-			check_pin ("gec", gec, Pinned_gec)
+			check_gec_version
 			is_checked := True
 		ensure
 			checked: is_checked
@@ -239,11 +243,34 @@ feature -- Default locations (Larry's layout)
 	Default_native: STRING_8 = "D:\android\native"
 	Default_jdk: STRING_8 = "D:\android\jdk"
 	Default_gec: STRING_8 = "D:\prod\gobo-26.10\gobo\bin\gec.exe"
-	Default_gobo_library: STRING_8 = "D:\prod\simple_gobo\library"
 	Default_ise: STRING_8 = "C:\Program Files\Eiffel Software\EiffelStudio 25.02 Standard"
 	Default_simple_eiffel: STRING_8 = "D:\prod"
 
 feature {NONE} -- Implementation
+
+	look_for_gec
+			-- Take gec from GOBO if set, or else the first one on the PATH.
+			-- With neither, `gec' stays as it was.
+		local
+			l_env: SIMPLE_ENV
+			l_candidate: PATH
+			l_found: BOOLEAN
+		do
+			create l_env
+			if attached l_env.get ("GOBO") as al_v and then not al_v.is_empty then
+				gec := (create {PATH}.make_from_string (al_v)).extended ("bin").extended ("gec.exe")
+			elseif attached l_env.get ("PATH") as al_v then
+				across al_v.split (';') as ic until l_found loop
+					if not ic.is_empty then
+						l_candidate := (create {PATH}.make_from_string (ic)).extended ("gec.exe")
+						if file_exists (l_candidate) then
+							gec := l_candidate
+							l_found := True
+						end
+					end
+				end
+			end
+		end
 
 	file_exists (a_path: PATH): BOOLEAN
 		do
@@ -263,6 +290,24 @@ feature {NONE} -- Implementation
 		do
 			if not (create {DIRECTORY}.make_with_path (a_path)).exists then
 				missing.extend (a_name)
+			end
+		end
+
+	check_gec_version
+			-- Note a mismatch unless gec itself says it is `Pinned_gec'.
+			-- Gobo can live in any folder, so the path proves nothing.
+		local
+			l_runner: EIFPHONE_RUNNER
+			l_said: STRING_32
+		do
+			if file_exists (gec) then
+				create l_runner.make
+				l_runner.ask (l_runner.quoted (gec) + {STRING_32} " --version", gec.parent)
+				l_said := l_runner.last_output.twin
+				l_said.adjust
+				if not l_said.has_substring ({STRING_32} "version " + Pinned_gec.to_string_32) then
+					pin_mismatches.extend ({STRING_32} "gec: expected " + Pinned_gec.to_string_32 + {STRING_32} ", found " + l_said)
+				end
 			end
 		end
 

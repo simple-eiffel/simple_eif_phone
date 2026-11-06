@@ -665,7 +665,9 @@ feature {NONE} -- Stage support
 			e.set ("ISE_LIBRARY", tools.ise_library.name)
 			e.set ("ISE_PLATFORM", "win64")
 			e.set ("SIMPLE_EIFFEL", tools.simple_eiffel.name)
-			e.set ("GOBO_LIBRARY", tools.gobo_library.name)
+			if attached tools.gobo_library as al_p then
+				e.set ("GOBO_LIBRARY", al_p.name)
+			end
 			e.set ("GOBO_EIFFEL", "ise")
 			runner.set_java_home (tools.jdk)
 		end
