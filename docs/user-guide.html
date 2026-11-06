@@ -120,6 +120,7 @@ min_sdk = 26
 target_sdk = 36
 java_helper = false
 # orientation = &quot;portrait&quot;   # or &quot;landscape&quot;; leave it out to follow the phone
+# recorder = true               # the microphone; needs controls = true
 
 # [signing] omitted = the shared debug key (its password is public by design).
 # debug_keystore = &quot;keys/debug.jks&quot;   # alone: keeps a project&#x27;s debug key elsewhere
@@ -162,6 +163,15 @@ defines = [&quot;MYLIB_FAST&quot;, &quot;MYLIB_LEVEL=2&quot;]</code></pre>
                 <tr><td><code>phone.files.pick ("text/*")</code></td><td><code>Kind_file_picked</code>, <code>Kind_file_cancelled</code> or <code>Kind_file_failed</code></td></tr>
                 </table>
                 <p>A chosen file is copied into the app's cache, so <code>phone.files.last_path</code> is a plain file you can open. <code>phone.speech.is_available</code> says whether the app carries the helper.</p>
+            </section>
+            <section id="recorder">
+                <h2>Recording the microphone</h2>
+                <p>Set <code>recorder = true</code> and <code>controls = true</code> in <code>eifphone.toml</code>. <code>PHONE_RECORDER</code> writes a 16 kHz mono WAV file. The microphone runs in a foreground service, because Android freezes an app without one when the screen locks, so Android shows a notification for as long as it records.</p>
+                <pre><code>create recorder.make (phone.controls)
+recorder.ask_permission (agent on_answer)   -- hears True or False
+recorder.start (path, agent on_change)      -- hears "recording", then "stopped" or "failed"
+recorder.stop</code></pre>
+                <p>Long work on the result belongs on a thread of its own. Android may reject a start made while the app is in the background, so start a recording from a tap.</p>
             </section>
             <section id="contracts">
                 <h2>Contracts and speed</h2>

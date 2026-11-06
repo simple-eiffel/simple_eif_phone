@@ -124,6 +124,8 @@ feature -- Access: [android]
 	uses_java_helper: BOOLEAN
 	uses_controls: BOOLEAN
 			-- Does the app use Android's own controls? Brings the Java helper with it.
+	uses_recorder: BOOLEAN
+			-- Does the app record the microphone? Brings the permissions and the service.
 	orientation: detachable STRING_32
 			-- "portrait" or "landscape" to hold the screen that way; Void to follow the phone.
 	launch_activity: STRING_8
@@ -287,6 +289,7 @@ feature {NONE} -- Reading tables
 			target_sdk := 0
 			uses_java_helper := False
 			uses_controls := False
+			uses_recorder := False
 			orientation := Void
 			permissions.wipe_out
 			keystore_path := Void
@@ -374,6 +377,10 @@ feature {NONE} -- Reading tables
 				end
 				uses_java_helper := flag (al_t, "android", "java_helper")
 				uses_controls := flag (al_t, "android", "controls")
+				uses_recorder := flag (al_t, "android", "recorder")
+				if uses_recorder and not uses_controls then
+					add_error ("android", {STRING_32} "recorder needs controls = true")
+				end
 				uses_java_helper := uses_java_helper or uses_controls
 				if attached text (al_t, "android", "orientation", False) as al_v then
 					if al_v.same_string ({STRING_32} "portrait") or al_v.same_string ({STRING_32} "landscape") then

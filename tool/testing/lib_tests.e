@@ -164,6 +164,28 @@ feature -- Project
 			assert ("kept", attached p.orientation as al_o and then al_o.same_string ({STRING_32} "portrait"))
 		end
 
+	test_project_recorder_needs_controls
+			-- recorder is off by default, needs controls, and is kept when valid.
+		local
+			p: EIFPHONE_PROJECT
+			l_toml: STRING
+		do
+			create p.make
+			p.load (project_folder ("norecorder", Good_toml))
+			assert ("valid without", p.is_valid)
+			assert ("off by default", not p.uses_recorder)
+			l_toml := Good_toml.twin
+			l_toml.replace_substring_all ("min_sdk = 26", "min_sdk = 26%Nrecorder = true")
+			p.load (project_folder ("recorderalone", l_toml))
+			assert ("invalid alone", not p.is_valid)
+			assert ("named", p.errors.first.starts_with ({STRING_32} "eifphone.toml: [android] recorder"))
+			l_toml := Good_toml.twin
+			l_toml.replace_substring_all ("min_sdk = 26", "min_sdk = 26%Ncontrols = true%Nrecorder = true")
+			p.load (project_folder ("recorder", l_toml))
+			assert ("valid with controls", p.is_valid)
+			assert ("kept", p.uses_recorder)
+		end
+
 	test_project_bad_orientation_named
 			-- Only portrait and landscape are allowed.
 		local
